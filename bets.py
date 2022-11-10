@@ -2,41 +2,37 @@ import urllib.request as ul
 from bs4 import BeautifulSoup as soup
 
 
-class Bets:
+def get_bets():
+    tournaments = ['premier-league', 'uefa-champions-league']
 
-    def __int__(self):
-        pass
+    for t in tournaments:
 
-    def get_bets(self):
-        tournaments = ['premier-league', 'uefa-champions-league']
+        print("\n ------------- ( " + t + " ) -----------------")
 
-        for t in tournaments:
+        football_url = "https://easyodds.com/football/" + t
+        req = ul.Request(football_url)
+        client = ul.urlopen(req)
+        htmldata = client.read()
+        client.close()
 
-            print("\n ------------- ( " + t + " ) -----------------")
+        pagesoup = soup(htmldata, "html.parser")
+        itemlocator = pagesoup.findAll('div', {"class": "tournament-event__row"})
 
-            football_url = "https://easyodds.com/football/" + t
-            req = ul.Request(football_url)
-            client = ul.urlopen(req)
-            htmldata = client.read()
-            client.close()
+        bets = {}
 
-            pagesoup = soup(htmldata, "html.parser")
-            itemlocator = pagesoup.findAll('div', {"class": "tournament-event__row"})
+        for item in itemlocator:
+            home = item.find_next('div', {'class': 'tournament-event__cell event-team event-team-home'})
+            draw = item.find_next('div', {'class': 'tournament-event__cell event-draw'})
+            away = item.find_next('div', {'class': 'tournament-event__cell event-team event-team-away'})
 
-            bets = {}
+            home_name = (home.find_next('div', {'class': 'event-team__name'})).text.strip()
+            home_bet = (home.find_next('span', {'class': 'odds-button'})).text.strip()
 
-            for item in itemlocator:
-                home = item.find_next('div', {'class': 'tournament-event__cell event-team event-team-home'})
-                draw = item.find_next('div', {'class': 'tournament-event__cell event-draw'})
-                away = item.find_next('div', {'class': 'tournament-event__cell event-team event-team-away'})
+            draw_bet = (draw.find_next('span', {'class': 'odds-button'})).text.strip()
 
-                home_name = (home.find_next('div', {'class': 'event-team__name'})).text.strip()
-                home_bet = (home.find_next('span', {'class': 'odds-button'})).text.strip()
+            away_name = (away.find_next('div', {'class': 'event-team__name'})).text.strip()
+            away_bet = (away.find_next('span', {'class': 'odds-button'})).text.strip()
 
-                draw_bet = (draw.find_next('span', {'class': 'odds-button'})).text.strip()
+            print(home_name + " vs " + away_name)
+            print(home_bet + " " + draw_bet + " " + away_bet)
 
-                away_name = (away.find_next('div', {'class': 'event-team__name'})).text.strip()
-                away_bet = (away.find_next('span', {'class': 'odds-button'})).text.strip()
-
-                print(home_name + " vs " + away_name)
-                print(home_bet + " " + draw_bet + " " + away_bet)

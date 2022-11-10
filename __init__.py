@@ -1,5 +1,5 @@
 import os
-import main
+from main import main
 
 modules_not_found = []
 

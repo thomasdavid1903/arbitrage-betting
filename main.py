@@ -3,11 +3,11 @@
 ##  E.g Premier league in football
 ##
 
-import bets
+from bets import get_bets
 
 def main():
 
-    bets()
+    get_bets()
 
 
 
