@@ -36,3 +36,5 @@ def get_bets():
             print(home_name + " vs " + away_name)
             print(home_bet + " " + draw_bet + " " + away_bet)
 
+            # Figure out return format for bets
+
