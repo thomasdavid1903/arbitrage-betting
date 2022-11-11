@@ -4,7 +4,7 @@
 ##
 
 from bets import get_bets
-
+## this is a test, alex is a queer
 def main():
 
     get_bets()
