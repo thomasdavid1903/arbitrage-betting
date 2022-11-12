@@ -5,6 +5,8 @@ from bs4 import BeautifulSoup as soup
 def get_bets():
     tournaments = ['premier-league', 'uefa-champions-league']
 
+    bets_tournaments = {}
+
     for t in tournaments:
 
         print("\n ------------- ( " + t + " ) -----------------")
@@ -37,4 +39,10 @@ def get_bets():
             print(home_bet + " " + draw_bet + " " + away_bet)
 
             # Figure out return format for bets
+            bets[home_name + " vs " + away_name] = [home_bet, draw_bet, away_bet]
+
+        bets_tournaments[t] = bets
+
+    print(bets_tournaments)
+    return bets_tournaments
 
