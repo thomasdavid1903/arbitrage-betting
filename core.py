@@ -7,9 +7,9 @@ import math
 
 
 ## Add betting odds here
-bet1 = 2 / 3
-bet2 = 15 / 3
-bet3 = 4 / 1
+bet1 = 13 / 10
+bet2 = 9 / 4
+bet3 = 153 / 40
 precision = 5
 ## precision is the square root of how many points it checks in a square unit on the graph, so if precision is 2 then it checks every 1/2 unit in the x and y direction so it checks say (0,0) (0,0.5) (0.5,0) (0.5,0.5)
 pointsX = []
