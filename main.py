@@ -4,12 +4,15 @@
 # i reckon at the moment we just focus on getting a program where it takes the bets from the website and reports back the profitable matches and the possible bets
 ## and worry about the automation later
 
-from bets import get_bets
+from bets import get_bets, get_odds
+
+
 # this is a test, alex is a queer
 
 # tommy like dick in his ass
 def main():
     t = get_bets()
+    ##s = get_odds()
 
 if __name__ == "__main__":
     main()
