@@ -16,7 +16,7 @@ import math
 bet1 = 13 / 10
 bet2 = 9 / 4
 bet3 = 153 / 40
-precision = 5
+precision = 1
 # Add betting odds here
 
 
