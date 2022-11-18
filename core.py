@@ -6,17 +6,16 @@ import pylab as pl
 import math
 
 
-
 import numpy as np
 import matplotlib.pyplot as plt
 import pylab as pl
 import math
 
 ## Add betting odds here
-bet1 = 13 / 10
-bet2 = 9 / 4
-bet3 = 153 / 40
-precision = 1
+#bet1 = 13 / 10
+#bet2 = 9 / 4
+#bet3 = 153 / 40
+#precision = 1
 # Add betting odds here
 
 
@@ -37,7 +36,8 @@ def line_intersection(line1, line2):
     return x, y
 # finds the coordinates of intersection of the bets
 
-def points(bet1,bet2,bet3,precision):
+
+def points(bet1, bet2, bet3, precision):
 
     # precision is the square root of how many points it checks in a square unit on the graph, so if precision is 2 then it checks every 1/2 unit in the x and y direction so it checks say (0,0) (0,0.5) (0.5,0) (0.5,0.5)
     pointsX = []
@@ -88,8 +88,7 @@ def points(bet1,bet2,bet3,precision):
         for j in range((maxY - minY) * precision - 1):
             currentY = minY + (1 / precision) * j
             print(currentX, " , ", currentY)
-            if (currentY < (bet1 * currentX) - z and currentY > (z + currentX) / bet2 and currentY < -currentX + (
-                    z * bet3)):
+            if (currentY < (bet1 * currentX) - z and currentY > (z + currentX) / bet2 and currentY < -currentX + (z * bet3)):
                 pointsX.append(currentX)
                 pointsY.append(currentY)
                 # adds points to array in order to plot
@@ -120,5 +119,4 @@ def points(bet1,bet2,bet3,precision):
     plt.fill()
     plt.fill()
     plt.show()
-points(bet1,bet2,bet3,precision)
-##
+

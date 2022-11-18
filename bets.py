@@ -2,14 +2,15 @@ import urllib.request as ul
 from bs4 import BeautifulSoup as soup
 
 
-def get_bets():
+def get_bets(verbose = False):
     tournaments = ['premier-league', 'uefa-champions-league']
 
     bets_tournaments = {}
 
     for t in tournaments:
 
-        print("\n ------------- ( " + t + " ) -----------------")
+        if verbose:
+            print("\n ------------- ( " + t + " ) -----------------")
 
         football_url = "https://easyodds.com/football/" + t
         req = ul.Request(football_url)
@@ -35,14 +36,14 @@ def get_bets():
             away_name = (away.find_next('div', {'class': 'event-team__name'})).text.strip()
             away_bet = (away.find_next('span', {'class': 'odds-button'})).text.strip()
 
-            print(home_name + " vs " + away_name)
-            print(home_bet + " " + draw_bet + " " + away_bet)
+            if verbose:
+                print(home_name + " vs " + away_name)
+                print(home_bet + " " + draw_bet + " " + away_bet)
 
             # Figure out return format for bets
             bets[home_name + " vs " + away_name] = [home_bet, draw_bet, away_bet]
 
         bets_tournaments[t] = bets
 
-    print(bets_tournaments)
     return bets_tournaments
 

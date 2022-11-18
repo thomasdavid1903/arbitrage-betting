@@ -4,11 +4,19 @@
 #
 
 from bets import get_bets
-# this is a test, alex is a queer
+from core import points
 
-# tommy like dick in his ass
+
 def main():
-    t = get_bets()
+    tournaments = get_bets()
+
+    for league in tournaments:
+
+        for matches in tournaments[league]:
+            bets = tournaments[league][matches]
+
+            points(bets[0], bets[1], bets[2], precision=2)
+
 
 if __name__ == "__main__":
     main()
