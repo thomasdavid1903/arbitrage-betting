@@ -15,7 +15,16 @@ def main():
         for matches in tournaments[league]:
             bets = tournaments[league][matches]
 
-            points(bets[0], bets[1], bets[2], precision=2)
+            bet1 = bets[0]
+            bet1 = float(bet1.split("/")[0]) / float(bet1.split("/")[1])
+
+            bet2 = bets[1]
+            bet2 = float(bet2.split("/")[0]) / float(bet2.split("/")[1])
+
+            bet3 = bets[2]
+            bet3 = float(bet3.split("/")[0]) / float(bet3.split("/")[1])
+
+            points(bet1, bet2, bet3, precision=1)
 
 
 if __name__ == "__main__":
