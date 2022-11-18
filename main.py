@@ -28,6 +28,11 @@ def main():
 
         points(bet1, bet2, bet3, precision=2)
 
+        # Tommy
+
+        # 'points' needs to return something that can be used to decide whether a bet should be made or not
+        # and what team to bet on
+
         return
 
 
