@@ -5,6 +5,7 @@
 
 from bets import get_bets
 from core import points
+from paypal_bridge import PayPal
 
 
 def main():
