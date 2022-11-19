@@ -8,6 +8,22 @@ from bets import get_bets
 from core import points
 from paypal_bridge import PayPal
 
+##############################################
+#
+# Main program should loop infinitely in order
+# to check and make the bets, see nas bets can
+# be updated.
+#
+# Bets may be updated from non-profitable to
+# profitable.
+#
+# Program also needs to take winnings, move it
+# back to PayPal, and distribute where
+# necessary in case of low balance on other
+# bookies site.
+#
+##############################################
+
 
 def main():
 
