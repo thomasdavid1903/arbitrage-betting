@@ -16,6 +16,9 @@ def main():
     # tournament = get_bets(tournament='championship')
     # tournament = get_bets(tournament='la-liga')
     # tournament = get_bets(tournament='uefa-europa-league')
+
+    competition = ['premier-league','uefa-champions-league','world-cup','championship','la-liga','uefa-europa-league']
+
     tournament = get_bets(tournament='uefa-europa-league')
 
     for matches in tournament:
