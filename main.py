@@ -10,29 +10,25 @@ from paypal_bridge import PayPal
 
 
 def main():
-    #tournament = get_bets(tournament='premier-league')
-    #tournament = get_bets(tournament='uefa-champions-league')
-    # tournament = get_bets(tournament='world-cup')
-    # tournament = get_bets(tournament='championship')
-    # tournament = get_bets(tournament='la-liga')
-    # tournament = get_bets(tournament='uefa-europa-league')
 
-    competition = ['premier-league','uefa-champions-league','world-cup','championship','la-liga','uefa-europa-league']
+    competition = ['premier-league',
+                   'uefa-champions-league',
+                   'world-cup',
+                   'championship',
+                   'la-liga',
+                   'uefa-europa-league']
 
-    tournament = get_bets(tournament='uefa-europa-league')
+    tournament = get_bets(tournament=competition[1])
 
-    for matches in tournament:
-        print(matches)
-        bets = tournament[matches]
+    for match in tournament:
+        print(match)
 
-        bet1 = bets[0]
-        bet1 = float(bet1.split("/")[0]) / float(bet1.split("/")[1])
+        home_name = match[0]
+        away_name = match[1]
 
-        bet2 = bets[1]
-        bet2 = float(bet2.split("/")[0]) / float(bet2.split("/")[1])
-
-        bet3 = bets[2]
-        bet3 = float(bet3.split("/")[0]) / float(bet3.split("/")[1])
+        bet1 = match[2]
+        bet2 = match[3]
+        bet3 = match[4]
 
         profitableBets = points(bet1, bet2, bet3, precision=2)
 

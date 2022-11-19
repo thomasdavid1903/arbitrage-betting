@@ -16,11 +16,12 @@ def get_bets(tournament, verbose=False):
     client.close()
 
     pagesoup = soup(htmldata, "html.parser")
-    itemlocator = pagesoup.findAll('div', {"class": "tournament-event__row"})
+    row = pagesoup.findAll('div', {"class": "tournament-event__row"})
+    # href =
 
-    bets = {}
+    bets = []
 
-    for item in itemlocator:
+    for item in row:
         home = item.find_next('div', {'class': 'tournament-event__cell event-team event-team-home'})
         draw = item.find_next('div', {'class': 'tournament-event__cell event-draw'})
         away = item.find_next('div', {'class': 'tournament-event__cell event-team event-team-away'})
@@ -37,8 +38,11 @@ def get_bets(tournament, verbose=False):
             print(home_name + " vs " + away_name)
             print(home_bet + " " + draw_bet + " " + away_bet)
 
-        # Figure out return format for bets
-        bets[home_name + " vs " + away_name] = [home_bet, draw_bet, away_bet]
+        bet1 = float(home_bet.split("/")[0]) / float(home_bet.split("/")[1])
+        bet2 = float(draw_bet.split("/")[0]) / float(draw_bet.split("/")[1])
+        bet3 = float(away_bet.split("/")[0]) / float(away_bet.split("/")[1])
+
+        bets.append([home_name, away_name, bet1, bet2, bet3])
 
     return bets
 
