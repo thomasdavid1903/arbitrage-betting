@@ -12,7 +12,11 @@ from paypal_bridge import PayPal
 def main():
     #tournament = get_bets(tournament='premier-league')
     #tournament = get_bets(tournament='uefa-champions-league')
-    tournament = get_bets(tournament='world-cup')
+    # tournament = get_bets(tournament='world-cup')
+    # tournament = get_bets(tournament='championship')
+    # tournament = get_bets(tournament='la-liga')
+    # tournament = get_bets(tournament='uefa-europa-league')
+    tournament = get_bets(tournament='uefa-europa-league')
 
     for matches in tournament:
         print(matches)
@@ -27,14 +31,14 @@ def main():
         bet3 = bets[2]
         bet3 = float(bet3.split("/")[0]) / float(bet3.split("/")[1])
 
-        points(bet1, bet2, bet3, precision=2)
+        profitableBets = points(bet1, bet2, bet3, precision=2)
 
         # Tommy
 
         # 'points' needs to return something that can be used to decide whether a bet should be made or not
         # and what team to bet on
 
-        return
+    return
 
 
 if __name__ == "__main__":

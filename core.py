@@ -10,15 +10,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pylab as pl
 import math
-
-## Add betting odds here
-#bet1 = 13 / 10
-#bet2 = 9 / 4
-#bet3 = 153 / 40
-#precision = 1
-# Add betting odds here
-
-
 def line_intersection(line1, line2):
     xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
     ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
@@ -87,17 +78,17 @@ def points(bet1: float, bet2: float, bet3: float, precision: int):
         currentX = minX + ((1 / precision) * i)
         for j in range((maxY - minY) * precision - 1):
             currentY = minY + (1 / precision) * j
-            print(currentX, " , ", currentY)
+            ##print(currentX, " , ", currentY)
             if (currentY < (bet1 * currentX) - z and currentY > (z + currentX) / bet2 and currentY < -currentX + (z * bet3)):
                 pointsX.append(currentX)
                 pointsY.append(currentY)
                 # adds points to array in order to plot
-    print("Max X ", maxX)
-    print("Min X ", minX)
-    print("Max Y ", maxY)
-    print("Min Y ", minY)
-    print(pointsX)
-    print(pointsY)
+    ##print("Max X ", maxX)
+    ##print("Min X ", minX)
+    ##print("Max Y ", maxY)
+    ##print("Min Y ", minY)
+    ##print(pointsX)
+    ##print(pointsY)
     x = np.arange(0, width, 1 / precision)
     plt.scatter(pointsX, pointsY)
     plt.plot(x, bet1 * x - z, color='red', label="bet1")
@@ -117,6 +108,12 @@ def points(bet1: float, bet2: float, bet3: float, precision: int):
     plt.fill_between(x, (10 + x) / bet2, 1000, alpha=.4, color='yellow')
     plt.fill_between(-x + 10 * bet3, x, step="pre", alpha=.4, color='royalblue')
     plt.fill()
-    plt.fill()
-    plt.show()
+    ##plt.show()
+
+    profitableBets = []
+    for i in range(len(pointsX)):
+        profit = [pointsX[i],pointsY[i],z]
+        profitableBets.append(profit)
+    print("Profitable betting odds : ",profitableBets)
+    return profitableBets
 
