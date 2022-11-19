@@ -34,6 +34,8 @@ def main():
 
         # If list is not empty, profitable bets exist
         if profitable_bets:
+            # Find bet in bookies and make bet
+
             print(profitable_bets)
 
 
