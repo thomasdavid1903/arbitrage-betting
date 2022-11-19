@@ -18,7 +18,7 @@ def main():
                    'la-liga',
                    'uefa-europa-league']
 
-    tournament = get_bets(tournament=competition[1])
+    tournament = get_bets(tournament=competition[2])
 
     for match in tournament:
         print(match)
@@ -31,6 +31,8 @@ def main():
         bet3 = match[4]
 
         profitableBets = points(bet1, bet2, bet3, precision=2)
+
+
 
         # Tommy
 
