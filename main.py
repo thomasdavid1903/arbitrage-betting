@@ -35,25 +35,28 @@ def main():
                    'la-liga',
                    'uefa-europa-league']
 
-    tournament = get_bets(tournament=competition[5])
+    for i in range(len(competition)):
 
-    for match in tournament:
-        print(match)
+        tournament = get_bets(tournament=competition[i])
 
-        home_name = match[0]
-        away_name = match[1]
+        for match in tournament:
+            print(match)
 
-        bet1 = match[2]
-        bet2 = match[3]
-        bet3 = match[4]
+            home_name = match[0]
+            away_name = match[1]
 
-        profitable_bets = points(bet1, bet2, bet3, precision=2)
+            bet1 = match[2]
+            bet2 = match[3]
+            bet3 = match[4]
 
-        # If list is not empty, profitable bets exist
-        if profitable_bets:
-            # Find bet in bookies and make bet
+            profitable_bets = points(bet1, bet2, bet3, precision=2)
 
-            print(profitable_bets)
+            # If list is not empty, profitable bets exist
+            if profitable_bets:
+                # Find bet in bookies and make bet
+
+                print(profitable_bets)
+
 
 
 if __name__ == "__main__":
