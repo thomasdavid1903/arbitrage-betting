@@ -37,6 +37,8 @@ def main():
 
     for i in range(len(competition)):
 
+        print(" ---------- { " + competition[i] + " } ----------")
+
         tournament = get_bets(tournament=competition[i])
 
         for match in tournament:
