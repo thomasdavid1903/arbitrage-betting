@@ -51,14 +51,19 @@ def main():
             bet2 = match[3]
             bet3 = match[4]
 
-            profitable_bets = points(bet1, bet2, bet3, precision=2)
+            profitable_bets = points(bet1, bet2, bet3, precision=3)
 
             # If list is not empty, profitable bets exist
             if profitable_bets:
                 # Find bet in bookies and make bet
-
-                print(profitable_bets)
-
+                highestTotal = 0
+                bestCombo = []
+                for bets in profitable_bets:
+                    if(highestTotal<bets[0]*bet1 + bets[1]*bet2 + bets[2]*bet3 - (2*sum(bets))):
+                        highestTotal = bets[0]*bet1 + bets[1]*bet2 + bets[2]*bet3 - (2*sum(bets))
+                        bestCombo = bets
+                print("Profit : " , highestTotal)
+                print("Best bet : ", bestCombo)
 
 
 if __name__ == "__main__":

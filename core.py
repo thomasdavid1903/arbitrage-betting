@@ -79,7 +79,7 @@ def points(bet1: float, bet2: float, bet3: float, precision: int):
         for j in range((maxY - minY) * precision - 1):
             currentY = minY + (1 / precision) * j
             ##print(currentX, " , ", currentY)
-            if (currentY < (bet1 * currentX) - z and currentY > (z + currentX) / bet2 and currentY < -currentX + (z * bet3)):
+            if (currentY <= (bet1 * currentX) - z and currentY >= (z + currentX) / bet2 and currentY <= -currentX + (z * bet3)):
                 pointsX.append(currentX)
                 pointsY.append(currentY)
                 # adds points to array in order to plot
@@ -114,6 +114,8 @@ def points(bet1: float, bet2: float, bet3: float, precision: int):
     for i in range(len(pointsX)):
         profit = [pointsX[i],pointsY[i],z]
         profitableBets.append(profit)
-    print("Profitable betting odds : ",profitableBets)
-    return profitableBets
 
+
+    return profitableBets
+    print(" ")
+##points(4/7,15/4,6/1,2)
