@@ -19,11 +19,12 @@ def line_intersection(line1, line2):
 
     div = det(xdiff, ydiff)
     if div == 0:
-        raise Exception('lines do not intersect')
-
-    d = (det(*line1), det(*line2))
-    x = det(d, xdiff) / div
-    y = det(d, ydiff) / div
+        x,y = 69420
+        ##raise Exception('lines do not intersect')
+    if div != 0:
+        d = (det(*line1), det(*line2))
+        x = det(d, xdiff) / div
+        y = det(d, ydiff) / div
     return x, y
 # finds the coordinates of intersection of the bets
 
