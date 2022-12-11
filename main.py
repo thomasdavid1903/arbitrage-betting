@@ -6,6 +6,7 @@
 from tabulate import tabulate
 from bets import get_bets
 from core import points
+import pandas as pd
 from paypal_bridge import PayPal
 from bookies_bridge import Bookies
 
@@ -79,6 +80,8 @@ def main():
 if __name__ == "__main__":
     data = main()
     col_names = ["Team 1 ", "Team 2 ","Win 1 ", "Draw ", "Win 2 ", "Best bets ","Expected returns","expected returns over invest"]
+    data = pd.DataFrame(data)
+    data.sort_values(7)
     print(tabulate(data, headers=col_names, tablefmt="fancy_grid"))
 
 
