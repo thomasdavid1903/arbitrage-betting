@@ -74,12 +74,12 @@ def main():
                 ##print("Bet1 Probability : ", probabilyBet1, " Bet2 Probability ", probabilyBet2, " Bet3 Probability ", probabilyBet3)
                 ##print("Expected return : ",expectedReturns , "when bet", sum(bets))
                 ##print(" ")
-                profitableBets.append( [match[0], match[1], match[2], match[3], match[4], bestCombo , expectedReturns, expectedReturns/sum(bets)] )
-                print(match[0], match[1], match[2], match[3], match[4], bestCombo,sum(bets) , expectedReturns, expectedReturns/sum(bets) )
+                profitableBets.append( [match[0], match[1], match[2], match[3], match[4], bestCombo ,sum(bets) ,  expectedReturns, expectedReturns/sum(bets)] )
+                #print(match[0], match[1], match[2], match[3], match[4], bestCombo,sum(bets) , expectedReturns, expectedReturns/sum(bets) )
     return profitableBets
 if __name__ == "__main__":
     data = main()
-    col_names = ["Team 1 ", "Team 2 ","Win 1 ", "Draw ", "Win 2 ", "Best bets ","Expected returns","expected returns over invest"]
+    col_names = ["Team 1 ", "Team 2 ","Win 1 ", "Draw ", "Win 2 ", "Best bets ","Best bets cost","Expected returns","expected returns over invest"]
     data = pd.DataFrame(data)
     data.sort_values(7)
     print(tabulate(data, headers=col_names, tablefmt="fancy_grid"))
