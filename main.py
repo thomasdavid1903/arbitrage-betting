@@ -28,12 +28,7 @@ from bookies_bridge import Bookies
 
 def main():
 
-    competition = ['premier-league',
-                   'uefa-champions-league',
-                   'world-cup',
-                   'championship',
-                   'la-liga',
-                   'uefa-europa-league']
+    competition = ['premier-league','uefa-champions-league','world-cup','championship','la-liga','uefa-europa-league']
 
     for i in range(len(competition)):
 
@@ -42,7 +37,7 @@ def main():
         tournament = get_bets(tournament=competition[i])
 
         for match in tournament:
-            ##print(match)
+
 
             home_name = match[0]
             away_name = match[1]
@@ -64,14 +59,21 @@ def main():
                 for bets in profitable_bets:
                     if(highestTotal<bets[0]*bet1 + bets[1]*bet2 + bets[2]*bet3 - (2*sum(bets))):
                         highestTotal = bets[0]*bet1 + bets[1]*bet2 + bets[2]*bet3 - (2*sum(bets))
+
                         bet1Win = bets[0] * bet1 - sum(bets) + bets[0]
-                        print(bets[0] * bet1," ",sum(bets)," ",bet1)
                         bet2Win = bets[1] * bet2 - sum(bets) + bets[1]
                         bet3Win = bets[2] * bet3 - sum(bets)+ bets[2]
+
+                        probabilyBet1 = 1/(bet1 + 1)
+                        probabilyBet2 = 1 /(bet2 + 1)
+                        probabilyBet3 = 1 /(bet3 + 1)
+                        expectedReturns =  bet1Win*probabilyBet1 + bet2Win*probabilyBet2 + bet3Win*probabilyBet3
                         bestCombo = bets
-                print("Profit : " , highestTotal)
+                print(" ")
                 print("Best bet : ", bestCombo)
-                print("Bet1 Profit " , bet1Win, " Bet2 Profit " , bet2Win, " Bet3 Profit " , bet3Win )
+                print("Bet1 Profit : " , bet1Win, " Bet2 Profit " , bet2Win, " Bet3 Profit " , bet3Win )
+                print("Bet1 Probability : ", probabilyBet1, " Bet2 Probability ", probabilyBet2, " Bet3 Probability ", probabilyBet3)
+                print("Expected return : ",expectedReturns , "when bet", sum(bets))
                 print(" ")
 
 if __name__ == "__main__":

@@ -35,7 +35,7 @@ def points(bet1: float, bet2: float, bet3: float, precision: int):
     pointsX = []
     # values of x in the profit region, value at the corresponding value in pointsY is the corresponding y value of the point
     pointsY = []
-    z = 10
+    z = 1000
     # this is the default bet on the 3rd bet, e.g 10 pounds
     width = 50
     # width of the graph
