@@ -3,7 +3,7 @@
 #  E.g Premier league in football
 # i reckon at the moment we just focus on getting a program where it takes the bets from the website and reports back the profitable matches and the possible bets
 ## and worry about the automation later
-
+from tabulate import tabulate
 from bets import get_bets
 from core import points
 from paypal_bridge import PayPal
@@ -27,7 +27,7 @@ from bookies_bridge import Bookies
 
 
 def main():
-
+    profitableBets = []
     competition = ['premier-league','uefa-champions-league','world-cup','championship','la-liga','uefa-europa-league']
 
     for i in range(len(competition)):
@@ -37,8 +37,6 @@ def main():
         tournament = get_bets(tournament=competition[i])
 
         for match in tournament:
-
-
             home_name = match[0]
             away_name = match[1]
 
@@ -75,9 +73,13 @@ def main():
                 print("Bet1 Probability : ", probabilyBet1, " Bet2 Probability ", probabilyBet2, " Bet3 Probability ", probabilyBet3)
                 print("Expected return : ",expectedReturns , "when bet", sum(bets))
                 print(" ")
-
+                profitableBets.append( [match[0], match[1], match[2], match[3], match[4], bestCombo , expectedReturns, expectedReturns/sum(bets)] )
+                print(match[0], match[1], match[2], match[3], match[4], bestCombo , expectedReturns, expectedReturns/sum(bets) )
+        return profitableBets
 if __name__ == "__main__":
-    main()
+    data = main()
+    col_names = ["Team 1 ", "Team 2 ","Win 1 ", "Draw ", "Win 2 ", "Best bets ","Expected returns","expected returns over invest"]
+    print(tabulate(data, headers=col_names, tablefmt="fancy_grid"))
 
 
 
