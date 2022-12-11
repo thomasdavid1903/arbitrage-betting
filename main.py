@@ -87,7 +87,7 @@ def main():
     return profitableBets
 if __name__ == "__main__":
     data = main()
-    col_names = ["Team 1 ", "Team 2 ","Win 1 oods", "Draw odds ", "Win 2 odds ", "Best bets ","Wins","probabilties","Best bets cost","Expected returns","profit per pound betted"]
+    col_names = ["Team 1 ", "Team 2 ","Win 1 odds", "Draw odds ", "Win 2 odds ", "Best bets ","Winings","Probabilties","Cost","Expected returns","Profit per Pound betted"]
     data = pd.DataFrame(data)
     data.sort_values(7)
     print(tabulate(data, headers=col_names, tablefmt="fancy_grid"))
