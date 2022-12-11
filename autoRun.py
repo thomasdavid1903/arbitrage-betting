@@ -1,3 +1,2 @@
-from distutils.core import setup
-import py2exe
-setup(console=['main.py'])
+$ pip install auto-py-to-exe
+$ auto-py-to-exe

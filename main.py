@@ -55,7 +55,12 @@ def main():
                 # Find bet in bookies and make bet
                 highestTotal = 0
                 bestCombo = []
+
                 for bets in profitable_bets:
+                    p1 = 1 / (bet1 + 1)
+                    p2 = 1 / (bet2 + 1)
+                    p3 = 1 / (bet3 + 1)
+
                     if(highestTotal<bets[0]*bet1 + bets[1]*bet2 + bets[2]*bet3 - (2*sum(bets))):
                         highestTotal = bets[0]*bet1 + bets[1]*bet2 + bets[2]*bet3 - (2*sum(bets))
 
@@ -63,9 +68,9 @@ def main():
                         bet2Win = bets[1] * bet2 - sum(bets) + bets[1]
                         bet3Win = bets[2] * bet3 - sum(bets)+ bets[2]
 
-                        probabilyBet1 = 1/(bet1 + 1)
-                        probabilyBet2 = 1 /(bet2 + 1)
-                        probabilyBet3 = 1 /(bet3 + 1)
+                        probabilyBet1 = 1 / (bet1 + 1)
+                        probabilyBet2 = 1 / (bet2 + 1)
+                        probabilyBet3 = 1 / (bet3 + 1)
                         expectedReturns =  bet1Win*probabilyBet1 + bet2Win*probabilyBet2 + bet3Win*probabilyBet3
                         bestCombo = bets
                 ##print(" ")
@@ -79,7 +84,7 @@ def main():
     return profitableBets
 if __name__ == "__main__":
     data = main()
-    col_names = ["Team 1 ", "Team 2 ","Win 1 ", "Draw ", "Win 2 ", "Best bets ","Best bets cost","Expected returns","expected returns over invest"]
+    col_names = ["Team 1 ", "Team 2 ","Win 1 oods", "Draw odds ", "Win 2 odds ", "Best bets ","Best bets cost","Expected returns","expected returns over invest"]
     data = pd.DataFrame(data)
     data.sort_values(7)
     print(tabulate(data, headers=col_names, tablefmt="fancy_grid"))
