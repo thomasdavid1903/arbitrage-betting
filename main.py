@@ -73,6 +73,7 @@ def main():
                         probabilyBet3 = 1 / (bet3 + 1)
                         expectedReturns =  bet1Win*probabilyBet1 + bet2Win*probabilyBet2 + bet3Win*probabilyBet3
                         bestCombo = bets
+                        probabilties = [round(probabilyBet1,4), round(probabilyBet2,4),round(probabilyBet3,4)]
                         wins = [ round(bet1Win,4),round(bet2Win,4),round(bet3Win,4),]
                         # RESULTS ROUNDED
                 ##print(" ")
@@ -81,12 +82,12 @@ def main():
                 ##print("Bet1 Probability : ", probabilyBet1, " Bet2 Probability ", probabilyBet2, " Bet3 Probability ", probabilyBet3)
                 ##print("Expected return : ",expectedReturns , "when bet", sum(bets))
                 ##print(" ")
-                profitableBets.append( [match[0], match[1], match[2], match[3], match[4], bestCombo, wins ,sum(bets) ,  expectedReturns, expectedReturns/sum(bets)] )
+                profitableBets.append( [match[0], match[1], match[2], match[3], match[4], bestCombo, wins,probabilties ,sum(bets) ,  expectedReturns, expectedReturns/sum(bets)] )
                 #print(match[0], match[1], match[2], match[3], match[4], bestCombo,sum(bets) , expectedReturns, expectedReturns/sum(bets) )
     return profitableBets
 if __name__ == "__main__":
     data = main()
-    col_names = ["Team 1 ", "Team 2 ","Win 1 oods", "Draw odds ", "Win 2 odds ", "Best bets ","Wins","Best bets cost","Expected returns","profit per pound betted"]
+    col_names = ["Team 1 ", "Team 2 ","Win 1 oods", "Draw odds ", "Win 2 odds ", "Best bets ","Wins","probabilties","Best bets cost","Expected returns","profit per pound betted"]
     data = pd.DataFrame(data)
     data.sort_values(7)
     print(tabulate(data, headers=col_names, tablefmt="fancy_grid"))

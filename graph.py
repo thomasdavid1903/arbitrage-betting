@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 
-xPoints = range(50)
+xPoints = range(90)
 yPoints = []
-start = 100
-rate = 1.0192605
+start = 1000
+rate = 1.0152605
 for x in range(len(xPoints)):
     yPoints.append( start*rate**x)
 
