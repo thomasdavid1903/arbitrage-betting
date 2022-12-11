@@ -42,7 +42,7 @@ def main():
         tournament = get_bets(tournament=competition[i])
 
         for match in tournament:
-            print(match)
+            ##print(match)
 
             home_name = match[0]
             away_name = match[1]
@@ -52,19 +52,27 @@ def main():
             bet3 = match[4]
 
             profitable_bets = points(bet1, bet2, bet3, precision=3)
-
+            bet1Win = 0
+            bet2Win = 0
+            bet3Win = 0
             # If list is not empty, profitable bets exist
             if profitable_bets:
+                print(match)
                 # Find bet in bookies and make bet
                 highestTotal = 0
                 bestCombo = []
                 for bets in profitable_bets:
                     if(highestTotal<bets[0]*bet1 + bets[1]*bet2 + bets[2]*bet3 - (2*sum(bets))):
                         highestTotal = bets[0]*bet1 + bets[1]*bet2 + bets[2]*bet3 - (2*sum(bets))
+                        bet1Win = bets[0] * bet1 - sum(bets) + bets[0]
+                        print(bets[0] * bet1," ",sum(bets)," ",bet1)
+                        bet2Win = bets[1] * bet2 - sum(bets) + bets[1]
+                        bet3Win = bets[2] * bet3 - sum(bets)+ bets[2]
                         bestCombo = bets
                 print("Profit : " , highestTotal)
                 print("Best bet : ", bestCombo)
-
+                print("Bet1 Profit " , bet1Win, " Bet2 Profit " , bet2Win, " Bet3 Profit " , bet3Win )
+                print(" ")
 
 if __name__ == "__main__":
     main()
