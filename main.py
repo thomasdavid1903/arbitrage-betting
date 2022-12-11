@@ -45,7 +45,7 @@ def main():
             bet2 = match[3]
             bet3 = match[4]
 
-            profitable_bets = points(bet1, bet2, bet3, precision=1)
+            profitable_bets = points(bet1, bet2, bet3, precision=4)
             bet1Win = 0
             bet2Win = 0
             bet3Win = 0
@@ -61,7 +61,7 @@ def main():
                     p2 = 1 / (bet2 + 1)
                     p3 = 1 / (bet3 + 1)
 
-                    if(highestTotal<bets[0]*bet1 + bets[1]*bet2 + bets[2]*bet3 - (2*sum(bets))):
+                    if(highestTotal<bets[0]*bet1*p1 + bets[1]*bet2*p2 + bets[2]*bet3*p3 ):
                         highestTotal = bets[0]*bet1 + bets[1]*bet2 + bets[2]*bet3 - (2*sum(bets))
 
                         bet1Win = bets[0] * bet1 - sum(bets) + bets[0]
