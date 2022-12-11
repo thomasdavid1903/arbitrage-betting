@@ -45,7 +45,7 @@ def main():
             bet2 = match[3]
             bet3 = match[4]
 
-            profitable_bets = points(bet1, bet2, bet3, precision=3)
+            profitable_bets = points(bet1, bet2, bet3, precision=1)
             bet1Win = 0
             bet2Win = 0
             bet3Win = 0
@@ -68,14 +68,14 @@ def main():
                         probabilyBet3 = 1 /(bet3 + 1)
                         expectedReturns =  bet1Win*probabilyBet1 + bet2Win*probabilyBet2 + bet3Win*probabilyBet3
                         bestCombo = bets
-                print(" ")
-                print("Best bet : ", bestCombo)
-                print("Bet1 Profit : " , bet1Win, " Bet2 Profit " , bet2Win, " Bet3 Profit " , bet3Win )
-                print("Bet1 Probability : ", probabilyBet1, " Bet2 Probability ", probabilyBet2, " Bet3 Probability ", probabilyBet3)
-                print("Expected return : ",expectedReturns , "when bet", sum(bets))
-                print(" ")
+                ##print(" ")
+                ##print("Best bet : ", bestCombo)
+                ##print("Bet1 Profit : " , bet1Win, " Bet2 Profit " , bet2Win, " Bet3 Profit " , bet3Win )
+                ##print("Bet1 Probability : ", probabilyBet1, " Bet2 Probability ", probabilyBet2, " Bet3 Probability ", probabilyBet3)
+                ##print("Expected return : ",expectedReturns , "when bet", sum(bets))
+                ##print(" ")
                 profitableBets.append( [match[0], match[1], match[2], match[3], match[4], bestCombo , expectedReturns, expectedReturns/sum(bets)] )
-                print(match[0], match[1], match[2], match[3], match[4], bestCombo , expectedReturns, expectedReturns/sum(bets) )
+                print(match[0], match[1], match[2], match[3], match[4], bestCombo,sum(bets) , expectedReturns, expectedReturns/sum(bets) )
     return profitableBets
 if __name__ == "__main__":
     data = main()
