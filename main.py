@@ -75,7 +75,7 @@ def main():
                 print(" ")
                 profitableBets.append( [match[0], match[1], match[2], match[3], match[4], bestCombo , expectedReturns, expectedReturns/sum(bets)] )
                 print(match[0], match[1], match[2], match[3], match[4], bestCombo , expectedReturns, expectedReturns/sum(bets) )
-        return profitableBets
+    return profitableBets
 if __name__ == "__main__":
     data = main()
     col_names = ["Team 1 ", "Team 2 ","Win 1 ", "Draw ", "Win 2 ", "Best bets ","Expected returns","expected returns over invest"]
