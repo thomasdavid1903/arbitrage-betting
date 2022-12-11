@@ -45,7 +45,7 @@ def main():
             bet2 = match[3]
             bet3 = match[4]
 
-            profitable_bets = points(bet1, bet2, bet3, precision=4)
+            profitable_bets = points(bet1, bet2, bet3, precision=1)
             bet1Win = 0
             bet2Win = 0
             bet3Win = 0
@@ -55,7 +55,7 @@ def main():
                 # Find bet in bookies and make bet
                 highestTotal = 0
                 bestCombo = []
-
+                wins = []
                 for bets in profitable_bets:
                     p1 = 1 / (bet1 + 1)
                     p2 = 1 / (bet2 + 1)
@@ -73,18 +73,19 @@ def main():
                         probabilyBet3 = 1 / (bet3 + 1)
                         expectedReturns =  bet1Win*probabilyBet1 + bet2Win*probabilyBet2 + bet3Win*probabilyBet3
                         bestCombo = bets
+                        wins = [bet1Win,bet2Win,bet3Win]
                 ##print(" ")
                 ##print("Best bet : ", bestCombo)
                 ##print("Bet1 Profit : " , bet1Win, " Bet2 Profit " , bet2Win, " Bet3 Profit " , bet3Win )
                 ##print("Bet1 Probability : ", probabilyBet1, " Bet2 Probability ", probabilyBet2, " Bet3 Probability ", probabilyBet3)
                 ##print("Expected return : ",expectedReturns , "when bet", sum(bets))
                 ##print(" ")
-                profitableBets.append( [match[0], match[1], match[2], match[3], match[4], bestCombo ,sum(bets) ,  expectedReturns, expectedReturns/sum(bets)] )
+                profitableBets.append( [match[0], match[1], match[2], match[3], match[4], bestCombo, wins ,sum(bets) ,  expectedReturns, expectedReturns/sum(bets)] )
                 #print(match[0], match[1], match[2], match[3], match[4], bestCombo,sum(bets) , expectedReturns, expectedReturns/sum(bets) )
     return profitableBets
 if __name__ == "__main__":
     data = main()
-    col_names = ["Team 1 ", "Team 2 ","Win 1 oods", "Draw odds ", "Win 2 odds ", "Best bets ","Best bets cost","Expected returns","expected returns over invest"]
+    col_names = ["Team 1 ", "Team 2 ","Win 1 oods", "Draw odds ", "Win 2 odds ", "Best bets ","Wins","Best bets cost","Expected returns","expected returns over invest"]
     data = pd.DataFrame(data)
     data.sort_values(7)
     print(tabulate(data, headers=col_names, tablefmt="fancy_grid"))
