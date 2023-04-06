@@ -46,6 +46,7 @@ def main():
             bet3 = match[4]
 
             profitable_bets = points(bet1, bet2, bet3, precision=1)
+            ##print(profitable_bets)
             bet1Win = 0
             bet2Win = 0
             bet3Win = 0
@@ -82,15 +83,16 @@ def main():
                 ##print("Bet1 Probability : ", probabilyBet1, " Bet2 Probability ", probabilyBet2, " Bet3 Probability ", probabilyBet3)
                 ##print("Expected return : ",expectedReturns , "when bet", sum(bets))
                 ##print(" ")
-                profitableBets.append( [match[0], match[1], match[2], match[3], match[4], bestCombo, wins,probabilties ,sum(bets) ,  expectedReturns, expectedReturns/sum(bets)] )
+                profitableBets.append( [match[0], match[1], match[2], match[3], match[4], bestCombo, wins,probabilties,sum(probabilties),sum(bestCombo) ,  expectedReturns, expectedReturns/sum(bets)] )
                 #print(match[0], match[1], match[2], match[3], match[4], bestCombo,sum(bets) , expectedReturns, expectedReturns/sum(bets) )
     return profitableBets
 if __name__ == "__main__":
     data = main()
-    col_names = ["Team 1 ", "Team 2 ","Win 1 odds", "Draw odds ", "Win 2 odds ", "Best bets ","Winings","Probabilties","Cost","Expected returns","Profit per Pound betted"]
+    col_names = ["Team 1 ", "Team 2 ","Win 1 odds", "Draw odds ", "Win 2 odds ", "Best bets ","Winings","Probabilties","Sum of P","Cost","Expected returns","Profit per Pound betted"]
     data = pd.DataFrame(data)
-    data.sort_values(7)
-    print(tabulate(data, headers=col_names, tablefmt="fancy_grid"))
+    if(data.empty == False):
+        data.sort_values(7)
+        print(tabulate(data, headers=col_names, tablefmt="fancy_grid"))
 
 
 
