@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup as soup
 
 
 def get_bets(tournament, verbose=False):
-
     if verbose:
         print("\n ------------- ( " + tournament + " ) -----------------")
 
@@ -17,8 +16,9 @@ def get_bets(tournament, verbose=False):
 
     pagesoup = soup(htmldata, "html.parser")
     row = pagesoup.findAll('div', {"class": "tournament-event__row"})
+    ##### THIS DOESNT RETURN ALL BETS
     # href =
-
+    print(row , " : this is the bets fetched from website")
     bets = []
 
     for item in row:
@@ -43,10 +43,10 @@ def get_bets(tournament, verbose=False):
         bet3 = float(away_bet.split("/")[0]) / float(away_bet.split("/")[1])
 
         bets.append([home_name, away_name, bet1, bet2, bet3])
-
+        print("fuck off")
     return bets
 
-def get_odds():
+##def get_odds():
     tournaments = ['premier-league', 'uefa-champions-league']
     odds = []
     bets_tournaments = {}

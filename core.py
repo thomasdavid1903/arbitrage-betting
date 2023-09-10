@@ -29,7 +29,8 @@ def line_intersection(line1, line2):
 # finds the coordinates of intersection of the bets
 
 
-def points(bet1: float, bet2: float, bet3: float, precision: int):
+
+def points(bet1: float, bet2: float, bet3: float, precision: float):
 
     # precision is the square root of how many points it checks in a square unit on the graph, so if precision is 2 then it checks every 1/2 unit in the x and y direction so it checks say (0,0) (0,0.5) (0.5,0) (0.5,0.5)
     pointsX = []
@@ -119,4 +120,6 @@ def points(bet1: float, bet2: float, bet3: float, precision: int):
 
     return profitableBets
     print(" ")
-##points(4/7,15/4,6/1,2)
+##
+#test = points(5,2,3,1)
+#print(test)

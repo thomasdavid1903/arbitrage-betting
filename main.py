@@ -29,15 +29,16 @@ from bookies_bridge import Bookies
 
 def main():
     profitableBets = []
-    competition = ['premier-league','uefa-champions-league','world-cup','championship','la-liga','uefa-europa-league']
+    competition = ['premier-league','uefa-champions-league','world-cup','championship','la-liga','uefa-europa-league','euro-2024','uefa-nations-league','campeonato-brasileiro-serie-a','']
 
     for i in range(len(competition)):
 
         print(" ---------- { " + competition[i] + " } ----------")
 
-        tournament = get_bets(tournament=competition[i])
+        tournaments = get_bets(tournament=competition[i])
+        print(tournaments)
 
-        for match in tournament:
+        for match in tournaments:
             home_name = match[0]
             away_name = match[1]
 
@@ -76,18 +77,14 @@ def main():
                         bestCombo = bets
                         probabilties = [round(probabilyBet1,4), round(probabilyBet2,4),round(probabilyBet3,4)]
                         wins = [ round(bet1Win,4),round(bet2Win,4),round(bet3Win,4),]
-                        # RESULTS ROUNDED
-                ##print(" ")
-                ##print("Best bet : ", bestCombo)
-                ##print("Bet1 Profit : " , bet1Win, " Bet2 Profit " , bet2Win, " Bet3 Profit " , bet3Win )
-                ##print("Bet1 Probability : ", probabilyBet1, " Bet2 Probability ", probabilyBet2, " Bet3 Probability ", probabilyBet3)
-                ##print("Expected return : ",expectedReturns , "when bet", sum(bets))
-                ##print(" ")
                 profitableBets.append( [match[0], match[1], match[2], match[3], match[4], bestCombo, wins,probabilties,sum(probabilties),sum(bestCombo) ,  expectedReturns, expectedReturns/sum(bets)] )
-                #print(match[0], match[1], match[2], match[3], match[4], bestCombo,sum(bets) , expectedReturns, expectedReturns/sum(bets) )
+                print(match[0], match[1], match[2], match[3], match[4], bestCombo,sum(bets) , expectedReturns, expectedReturns/sum(bets) )
+            else:
+                print(match)
     return profitableBets
 if __name__ == "__main__":
     data = main()
+    print(data)
     col_names = ["Team 1 ", "Team 2 ","Win 1 odds", "Draw odds ", "Win 2 odds ", "Best bets ","Winings","Probabilties","Sum of P","Cost","Expected returns","Profit per Pound betted"]
     data = pd.DataFrame(data)
     if(data.empty == False):
