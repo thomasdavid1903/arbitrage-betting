@@ -4,11 +4,10 @@
 # i reckon at the moment we just focus on getting a program where it takes the bets from the website and reports back the profitable matches and the possible bets
 ## and worry about the automation later
 from tabulate import tabulate
-from bets import get_bets
+from utils import get_bets
 from core import points
 import pandas as pd
-from paypal_bridge import PayPal
-from bookies_bridge import Bookies
+
 
 ##############################################
 #
@@ -82,6 +81,8 @@ def main():
             else:
                 print(match)
     return profitableBets
+
+
 if __name__ == "__main__":
     data = main()
     print(data)

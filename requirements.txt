@@ -2,3 +2,5 @@ beautifulsoup4
 urllib
 numpy
 matplotlib
+tabulate
+pandas
