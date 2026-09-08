@@ -115,6 +115,23 @@ def points(bet1: float, bet2: float, bet3: float, precision: int = 1, z: float =
     return list(iter_points(bet1, bet2, bet3, precision, z))
 
 
+def overround(bet1: float, bet2: float, bet3: float) -> float:
+    """Sum of the implied probabilities of the three prices.
+
+    Below 1 means the prices are collectively generous enough to bet all
+    three outcomes at a guaranteed profit; 1.05 means a 5% margin against
+    you. This is the bookmakers' overround, and for the best price taken
+    across several books it is the exact test for whether an arbitrage
+    exists -- no search required.
+    """
+    return sum(1 / (bet + 1) for bet in (bet1, bet2, bet3))
+
+
+def has_arbitrage(bet1: float, bet2: float, bet3: float) -> bool:
+    """Whether any profitable stake combination exists, in constant time."""
+    return overround(bet1, bet2, bet3) < 1
+
+
 def best_stakes(bet1: float, bet2: float, bet3: float, precision: int = 1, z: float = 1000.0):
     """Stakes with the highest guaranteed return per pound staked.
 
@@ -126,6 +143,11 @@ def best_stakes(bet1: float, bet2: float, bet3: float, precision: int = 1, z: fl
     Iterates rather than building a list, because a wide profitable region can
     hold millions of combinations.
     """
+    # The grid search is expensive and the overround settles the question
+    # outright, so reject hopeless matches before scanning anything.
+    if not has_arbitrage(bet1, bet2, bet3):
+        return None
+
     best = None
     best_ratio = 0.0
 

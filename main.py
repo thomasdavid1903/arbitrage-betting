@@ -12,23 +12,23 @@ import pandas as pd
 from tabulate import tabulate
 
 import oddspapi
-from core import best_stakes, implied_probability, profit_if
+from core import best_stakes, implied_probability, overround, profit_if
 
-# Tournament slugs, resolved to the API's numeric ids at run time.
+# (country category, tournament slug). The category is required because slugs
+# repeat: 36 different tournaments are called 'premier-league'.
 COMPETITIONS = [
-    'premier-league',
-    'uefa-champions-league',
-    'world-cup',
-    'championship',
-    'la-liga',
-    'uefa-europa-league',
-    'uefa-nations-league',
-    'campeonato-brasileiro-serie-a',
+    ('england', 'premier-league'),
+    ('england', 'championship'),
+    ('spain', 'laliga'),
+    ('brazil', 'brasileiro-serie-a'),
+    ('international-clubs', 'uefa-champions-league'),
+    ('international-clubs', 'uefa-europa-league'),
+    ('international', 'uefa-nations-league'),
 ]
 
-# Taking the best price across several books is what creates the arbitrage;
-# a single bookmaker's own prices are always overround in its favour.
-BOOKMAKERS = ['pinnacle', 'bet365', 'williamhill', 'betfair', 'unibet']
+# One API request per bookmaker per scan, so this list directly sets the cost
+# of a scan. Slugs must match /v4/bookmakers ('betfair-ex', not 'betfair').
+BOOKMAKERS = ['pinnacle', 'bet365', 'williamhill', 'paddypower', 'ladbrokes']
 
 COLUMNS = [
     "Team 1", "Team 2",
@@ -71,19 +71,48 @@ def find_arbitrage(match, precision=1):
     ]
 
 
+def requests_needed(found, bookmakers):
+    """Requests one scan costs: tournaments and participants, plus the odds
+    calls, which are one per bookmaker per chunk of five tournaments."""
+    chunks = -(-len(found) // oddspapi.MAX_TOURNAMENTS_PER_REQUEST)
+    return 2 + len(bookmakers) * chunks
+
+
+def report_margins(matches, limit=10):
+    """Show the matches that came closest to an arbitrage.
+
+    Useful even on a run that finds nothing: it says whether the market is
+    narrowly missing or nowhere near.
+    """
+    ranked = sorted(matches, key=lambda m: overround(m[2], m[3], m[4]))
+    print("\nclosest to an arbitrage (overround below 1.0 would be one):")
+    for m in ranked[:limit]:
+        books = getattr(m, "books", None) or ["?", "?", "?"]
+        print("  %.4f  %-40s %-18s %s" % (
+            overround(m[2], m[3], m[4]),
+            (str(m[0]) + " v " + str(m[1]))[:40],
+            " ".join("%.2f" % (b + 1) for b in (m[2], m[3], m[4])),
+            "/".join(books)))
+
+
 def main(competitions=COMPETITIONS, bookmakers=BOOKMAKERS, precision=1, api_key=None):
-    tournament_ids = oddspapi.find_tournament_ids(competitions, api_key=api_key)
-    if not tournament_ids:
-        print("none of those competition slugs matched a tournament")
+    found, missing = oddspapi.find_tournament_ids(competitions, api_key=api_key)
+    for key in missing:
+        print("no upcoming fixtures for %s/%s" % key)
+    if not found:
+        print("nothing to check")
         return []
 
-    print("checking %d tournaments across %d bookmakers"
-          % (len(tournament_ids), len(bookmakers)))
+    print("checking %d tournaments across %d bookmakers (%d requests)"
+          % (len(found), len(bookmakers), requests_needed(found, bookmakers)))
 
+    names = oddspapi.get_participants(api_key=api_key)
     matches = oddspapi.get_bets(
-        tournament_ids, bookmakers, api_key=api_key, verbose=True
+        list(found.values()), bookmakers, api_key=api_key, verbose=True, names=names
     )
     print("%d matches priced on all three outcomes" % len(matches))
+    if matches:
+        report_margins(matches)
 
     profitable_bets = []
     for match in matches:
