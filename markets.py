@@ -99,8 +99,22 @@ RULE_FAMILIES = {
 #   for pinnacle and paddypower. The divergence to watch for elsewhere is
 #   counting corners awarded but not taken.
 #
-# Ladbrokes does not publish its card rules in a form worth encoding, so it
-# stays absent and its markets are reported unknown.
+# Checked and NOT added, deliberately:
+#
+#   ladbrokes (cards)     -- no published market rules found. Third-party
+#     guides describe the UK booking-points convention (yellow 10, red 25, a
+#     second yellow totalling 35), which is equivalent to bet365's counting
+#     once scaled, but aggregator sites are not the operator's terms and this
+#     table is only worth having if everything in it was read from the book.
+#
+#   marathonbet (corners) -- rules page returns 403 to anything but a browser
+#     and nothing authoritative surfaced.
+#
+# One thing the data does settle: a line of 1.5 or 2.5 is a market counting
+# cards, not booking points, because points lines run in the tens. So the
+# divergence at stake on these particular arbitrages is the narrower one --
+# how a second yellow and a red are weighted -- rather than two entirely
+# different scales. That is a reason to check, not a reason to assume.
 BOOK_RULE_SYSTEMS = {
     "cards": {
         "pinnacle": "cards-1-2-ignore-second",
@@ -110,6 +124,14 @@ BOOK_RULE_SYSTEMS = {
         "pinnacle": "corners-taken-90min",
         "paddypower": "corners-taken-90min",
     },
+}
+
+# Where each verified entry above was read from, so the table can be audited
+# rather than trusted.
+RULE_SOURCES = {
+    "pinnacle": "https://www.pinnacle.com/en/future/betting-rules",
+    "bet365": "https://help.bet365.com/s/en/sportsrules/soccer/card-markets",
+    "paddypower": "https://helpcenter.paddypower.com/app/answers/detail/football-soccer-rules/",
 }
 
 FAMILY_NOTES = {
