@@ -61,12 +61,23 @@ RULE_FAMILIES = {
 #   The competing convention is booking points -- yellow 10, red 25, a
 #   second yellow counting 35 -- which settles an Over/Under line quite
 #   differently.
+#
+# corners-taken-90min: only corners actually taken count, a retaken corner
+#   counts once, ninety minutes plus stoppage, extra time excluded. Verified
+#   for pinnacle and paddypower. The divergence to watch for elsewhere is
+#   counting corners awarded but not taken.
+#
+# Ladbrokes does not publish its card rules in a form worth encoding, so it
+# stays absent and its markets are reported unknown.
 BOOK_RULE_SYSTEMS = {
     "cards": {
         "pinnacle": "cards-1-2-ignore-second",
         "bet365": "cards-1-2-ignore-second",
     },
-    "corners": {},
+    "corners": {
+        "pinnacle": "corners-taken-90min",
+        "paddypower": "corners-taken-90min",
+    },
 }
 
 FAMILY_NOTES = {
