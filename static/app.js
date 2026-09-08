@@ -430,3 +430,65 @@ addEventListener('resize', () => {
 });
 
 run('/api/cached', {}, 'Loading last scan…');
+
+/* ---------------- scheduled scanning ---------------- */
+
+const schedState = document.getElementById('sched-state');
+
+function renderSchedule(s) {
+  if (!s) return;
+  const bits = [];
+  if (s.running) {
+    bits.push('Running every ' + Math.round(s.intervalSeconds / 60) + ' min');
+    bits.push(s.scans + ' scans, ' + s.spent + ' of ' + s.budget + ' requests spent');
+    if (s.nextScanAt) bits.push('next at ' + new Date(s.nextScanAt).toLocaleTimeString());
+  } else {
+    bits.push(s.scans ? 'Stopped after ' + s.scans + ' scans (' + s.spent + ' requests)' : 'Idle.');
+    if (s.stoppedBecause && s.scans) bits.push(s.stoppedBecause);
+    if (s.lastError) bits.push(s.lastError);
+  }
+  schedState.textContent = bits.join(' · ');
+
+  const alerts = s.alerts || [];
+  document.getElementById('sched-alerts').innerHTML = alerts.length
+    ? alerts.slice(0, 8).map(a =>
+        '<div class="alert-row"><strong>+' + (a.ratio * 100).toFixed(2) + '%</strong> ' +
+        a.market + ' — ' + a.fixture +
+        ' <span class="when">£' + (a.profit || 0).toFixed(2) + ' on £' + (a.total || 0).toFixed(0) +
+        ' · ' + (a.books || []).join(' / ') +
+        ' · ' + new Date(a.at).toLocaleTimeString() + '</span></div>').join('')
+    : '';
+}
+
+async function schedulePost(body) {
+  const res = await fetch('/api/schedule', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if (data.error || data.ok === false) {
+    schedState.textContent = data.error || data.message;
+    return;
+  }
+  renderSchedule(data.state);
+}
+
+document.getElementById('sched-start').addEventListener('click', () => {
+  const key = document.getElementById('key').value.trim();
+  if (!key) { schedState.textContent = 'Paste an OddsPapi key first.'; return; }
+  schedulePost({
+    apiKey: key,
+    intervalSeconds: Number(document.getElementById('sched-interval').value),
+    budgetRequests: Number(document.getElementById('sched-budget').value)
+  });
+});
+
+document.getElementById('sched-stop').addEventListener('click', () =>
+  schedulePost({ action: 'stop' }));
+
+// Poll the schedule state so a running job stays visible across reloads.
+setInterval(async () => {
+  try { renderSchedule(await (await fetch('/api/schedule')).json()); } catch (e) { /* offline */ }
+}, 5000);
+fetch('/api/schedule').then(r => r.json()).then(renderSchedule).catch(() => {});

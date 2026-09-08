@@ -329,3 +329,24 @@ td.num { text-align: right; }
 .pill.ok { background: rgba(13, 159, 190, .13); color: var(--series-1); border: 1px solid var(--series-1); }
 .rule-note { color: var(--text-muted); font-size: 10.5px; margin-top: 7px; line-height: 1.55; }
 .arb-card.divergent { border-left-color: var(--critical); }
+
+.sched { margin-bottom: 14px; }
+.sched select, .sched input[type="number"] {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 5px 8px;
+}
+.sched button { padding: 6px 14px; }
+.alert-row {
+  border-left: 2px solid var(--good);
+  background: var(--surface-2);
+  border-radius: 5px;
+  font-size: 11px;
+  margin-top: 6px;
+  padding: 8px 12px;
+}
+.alert-row .when { color: var(--text-muted); font-size: 10px; }

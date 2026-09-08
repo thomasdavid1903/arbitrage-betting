@@ -136,6 +136,47 @@ def get_markets(sport_id=SPORT_FOOTBALL, api_key=None, use_cache=True):
     return _cached("markets-%s" % sport_id, CACHE_TTL_SECONDS, build)
 
 
+def get_bookmakers(api_key=None, use_cache=True):
+    """Every bookmaker the API knows, with its cloneOf relationship."""
+    build = lambda: _get("/v4/bookmakers", api_key=api_key)
+    if not use_cache:
+        return build()
+    return _cached("bookmakers", CACHE_TTL_SECONDS, build)
+
+
+# The API's cloneOf covers technical clones -- one sportsbook behind several
+# brands -- but not corporate ownership. These brands are separate sites with
+# separate accounts, yet they share pricing and a risk team, so an
+# "arbitrage" between two of them is not one worth trusting.
+CORPORATE_GROUPS = {
+    "paddypower": "flutter",
+    "betfair-ex": "flutter",
+    "skybet": "flutter",
+    "ladbrokes": "entain",
+    "coral": "entain",
+    "bwin": "entain",
+    "williamhill": "evoke",
+    "888sport": "evoke",
+}
+
+
+def clone_groups(bookmakers):
+    """Map each bookmaker slug to the operator it really is.
+
+    A clone is the same sportsbook behind a different brand: the prices are
+    the same book, so two legs across a clone pair are one bet placed twice,
+    not an arbitrage, and a risk team will treat them as such. Corporate
+    stablemates are folded in for the same reason.
+    """
+    groups = {}
+    for book in bookmakers:
+        slug = book.get("slug")
+        if not slug:
+            continue
+        groups[slug] = CORPORATE_GROUPS.get(slug) or book.get("cloneOf") or slug
+    return groups
+
+
 def market_index(markets):
     """Market definitions keyed by id as a string."""
     return {str(m["marketId"]): m for m in markets}

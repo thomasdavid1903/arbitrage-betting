@@ -26,9 +26,26 @@ COMPETITIONS = [
     ('international', 'uefa-nations-league'),
 ]
 
-# One API request per bookmaker per scan, so this list directly sets the cost
-# of a scan. Slugs must match /v4/bookmakers ('betfair-ex', not 'betfair').
-BOOKMAKERS = ['pinnacle', 'bet365', 'williamhill', 'paddypower', 'ladbrokes']
+# One API request per bookmaker per chunk of five tournaments, so this list
+# sets the cost of a scan directly. Slugs must match /v4/bookmakers
+# ('betfair-ex', not 'betfair').
+#
+# Every entry is a different operator. Coral, Sky Bet, Betfair and 888sport
+# are deliberately absent: they belong to the same companies as Ladbrokes,
+# Paddy Power and William Hill respectively, so they add requests without
+# adding an independent price.
+BOOKMAKERS = [
+    'pinnacle',      # sharp, moves first
+    'bet365',
+    'paddypower',    # Flutter
+    'ladbrokes',     # Entain
+    'williamhill',   # evoke
+    'betfred',
+    'betway',
+    'unibet',
+    'boylesports',
+    'marathonbet',
+]
 
 COLUMNS = [
     "Team 1", "Team 2",

@@ -38,6 +38,38 @@ from core import arb_stakes, implied_sum
 # rather than a pricing error.
 # ---------------------------------------------------------------------------
 
+# Markets with more outcomes than this are skipped: correct-score and
+# scorecast markets are long, thinly quoted, and rarely a clean partition.
+# Bumped whenever a guard changes what counts as an arbitrage. Scans found
+# by different versions are not comparable, so persistence only measures
+# within one version rather than reporting a survival rate across a change
+# in what was being detected.
+DETECTOR_VERSION = 3
+
+MAX_OUTCOMES = 4
+
+# An arbitrage capped below this is not worth the two bets it takes.
+MIN_STAKE = 20.0
+
+# A bookmaker builds a margin into its own book, so its complete quote should
+# always imply more than 1. Anything below that means the outcomes have been
+# mismapped -- prices from different underlying markets merged into one -- and
+# the market cannot be trusted, however attractive it looks.
+SELF_ARB_FLOOR = 1.0
+
+# Two bookmakers price differently; they do not disagree about which outcome
+# is likeliest. When one book's favourite is another's outsider, the feed has
+# mapped the outcomes inconsistently between them, and taking the best of each
+# label manufactures an enormous edge out of nothing. Prices within this
+# fraction of each other are treated as a tie, since the ordering between them
+# is not meaningful.
+FAVOURITE_TOLERANCE = 0.15
+
+# No genuine cross-book arbitrage on a mainstream football market runs into
+# double figures. A ratio above this is a mapping artifact, not an
+# opportunity, and is dropped rather than shown.
+MAX_PLAUSIBLE_RATIO = 0.10
+
 RULE_DIVERGENT = "divergent"
 RULE_UNKNOWN = "unknown"
 RULE_STANDARD = "standard"
@@ -123,6 +155,28 @@ def _book_quotes_market(prices, expected):
     return len(prices) == expected
 
 
+def _favourites(prices):
+    """Outcomes a book prices at or near the shortest odds."""
+    best = min(p["price"] for p in prices.values())
+    return {oid for oid, p in prices.items()
+            if p["price"] <= best * (1 + FAVOURITE_TOLERANCE)}
+
+
+def _ranks_agree(complete):
+    """Whether every complete quote agrees on the likeliest outcome.
+
+    Disagreement means the outcome labels do not line up between books, so
+    the prices are not comparable and must not be combined.
+    """
+    shared = None
+    for prices in complete.values():
+        favourites = _favourites(prices)
+        shared = favourites if shared is None else (shared & favourites)
+        if not shared:
+            return False
+    return True
+
+
 def _coherent(prices):
     """Whether one book's outcomes all come from the same market at that book.
 
@@ -134,7 +188,8 @@ def _coherent(prices):
     return len(sources) <= 1
 
 
-def evaluate_fixture(fixture_markets, index, bankroll=None, min_ratio=0.0):
+def evaluate_fixture(fixture_markets, index, bankroll=None, min_ratio=0.0,
+                     operators=None):
     """Arbitrages in one fixture's collected markets.
 
     `fixture_markets` is what oddspapi.collect_all_markets returns; `index`
@@ -154,12 +209,23 @@ def evaluate_fixture(fixture_markets, index, bankroll=None, min_ratio=0.0):
         if expected < 2 or expected > MAX_OUTCOMES:
             continue
 
+        # At least one book must quote the whole market. Without a complete
+        # quote there is nothing to check the outcome mapping against, and
+        # stitching partial quotes together from several books invents
+        # arbitrages wholesale -- it was worth 60 false alerts across ten
+        # bookmakers before this check existed.
+        complete = {b: p for b, p in by_book.items()
+                    if _book_quotes_market(p, expected)}
+        if not complete:
+            continue
+
+        if not _ranks_agree(complete):
+            continue
+
         # Any book quoting the whole market must show a margin in its own
         # favour. If it does not, the outcomes have been mismapped.
         trustworthy = True
-        for prices in by_book.values():
-            if not _book_quotes_market(prices, expected):
-                continue
+        for prices in complete.values():
             if not _coherent(prices):
                 trustworthy = False
                 break
@@ -190,6 +256,8 @@ def evaluate_fixture(fixture_markets, index, bankroll=None, min_ratio=0.0):
 
         result = arb_stakes(decimals, bankroll=bankroll, limits=limits)
         if not result or result["ratio"] <= min_ratio:
+            continue
+        if result["ratio"] > MAX_PLAUSIBLE_RATIO:
             continue
         if result["total"] < MIN_STAKE:
             continue
@@ -222,8 +290,11 @@ def evaluate_fixture(fixture_markets, index, bankroll=None, min_ratio=0.0):
             "limited": result["limited"],
             # Every leg at one book is that book disagreeing with itself:
             # far likelier to be an error it will void than a real gap.
-            "singleBook": len(set(books)) == 1,
+            # Clones count as one book, because they are one sportsbook
+            # behind two brands and share the same prices and risk team.
+            "singleBook": len({(operators or {}).get(b, b) for b in books}) == 1,
             "books": sorted(set(books)),
+            "operators": sorted({(operators or {}).get(b, b) for b in books}),
         })
 
     found.sort(key=lambda r: -r["ratio"])
@@ -238,7 +309,8 @@ def _outcome_name(definition, outcome_id, data):
     return data.get("label") or outcome_id
 
 
-def scan_markets(market_sink, matches, index, bankroll=None, min_ratio=0.0):
+def scan_markets(market_sink, matches, index, bankroll=None, min_ratio=0.0,
+                 operators=None):
     """Every market arbitrage across a scan, best first.
 
     `matches` supplies team names and kick-off already resolved by the 1X2
@@ -249,7 +321,8 @@ def scan_markets(market_sink, matches, index, bankroll=None, min_ratio=0.0):
 
     for fixture_id, fixture_markets in market_sink.items():
         match = meta.get(fixture_id)
-        for row in evaluate_fixture(fixture_markets, index, bankroll, min_ratio):
+        for row in evaluate_fixture(fixture_markets, index, bankroll, min_ratio,
+                                    operators=operators):
             row["fixtureId"] = fixture_id
             row["home"] = match.home if match else ""
             row["away"] = match.away if match else ""
@@ -322,8 +395,10 @@ def margins(market_sink, matches, index):
 
             complete = {b: p for b, p in by_book.items() if len(p) == expected}
             if not complete:
-                continue
+                continue  # nothing to validate the outcome mapping against
             if any(not _coherent(p) for p in complete.values()):
+                continue
+            if not _ranks_agree(complete):
                 continue
             if any(implied_sum([x["price"] for x in p.values()]) < SELF_ARB_FLOOR
                    for p in complete.values()):

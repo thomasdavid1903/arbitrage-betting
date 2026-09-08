@@ -24,6 +24,33 @@
 
   <div class="status" id="status"><span class="dot"></span><span id="status-text">Idle &mdash; paste a key and scan, or load the last result.</span></div>
 
+  <section class="panel wide sched">
+    <h2>Scheduled scanning</h2>
+    <p class="desc">
+      Repeat scans on a timer within a fixed request budget. It stops when the budget is spent rather than
+      eating the month&rsquo;s allowance, and it never places anything &mdash; it records scans and raises
+      alerts for you to look at. Only arbitrages in markets both books settle identically are alerted on.
+    </p>
+    <div class="filters">
+      <label>Every
+        <select id="sched-interval">
+          <option value="300">5 min</option>
+          <option value="900" selected>15 min</option>
+          <option value="1800">30 min</option>
+          <option value="3600">1 hour</option>
+        </select>
+      </label>
+      <label>Budget
+        <input type="number" id="sched-budget" value="66" min="1" step="1" style="width:80px">
+        requests
+      </label>
+      <button id="sched-start">Start</button>
+      <button id="sched-stop">Stop</button>
+    </div>
+    <p class="footnote" id="sched-state">Idle.</p>
+    <div id="sched-alerts"></div>
+  </section>
+
   <div class="tiles" id="tiles"></div>
 
   <div class="grid">

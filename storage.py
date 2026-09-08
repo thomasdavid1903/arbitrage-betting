@@ -58,6 +58,7 @@ def record_scan(payload, observations):
         "tournaments": payload.get("tournaments"),
         "matches": payload.get("matches"),
         "markets": payload.get("markets"),
+        "detector": payload.get("detector"),
     }
     with open(SCANS_PATH, "a", encoding="utf-8", newline="") as handle:
         handle.write(json.dumps(summary) + "\n")
@@ -271,9 +272,18 @@ def _arb_key(row):
 
 def arb_persistence():
     """Every arbitrage seen, and how many consecutive scans it survived."""
-    scans = [s for s in load_scans() if s.get("markets") is not None]
+    import markets as market_scan
+
+    # Only scans produced by the current detector are comparable: a guard
+    # change alters what counts as an arbitrage, so mixing versions would
+    # measure the code changing rather than prices moving.
+    scans = [s for s in load_scans()
+             if s.get("markets") is not None
+             and s.get("detector") == market_scan.DETECTOR_VERSION]
     if not scans:
-        return {"scans": 0, "opportunities": [], "intervals": []}
+        return {"scans": 0, "opportunities": [], "intervals": [],
+                "total": 0, "survived": 0, "vanished": 0, "survivalRate": None,
+                "detector": market_scan.DETECTOR_VERSION}
 
     times = [_parse(s["scannedAt"]) for s in scans]
     intervals = [
@@ -334,6 +344,7 @@ def arb_persistence():
     survived_once = [r for r in out if r["seenIn"] > 1]
     return {
         "scans": len(scans),
+        "detector": market_scan.DETECTOR_VERSION,
         "opportunities": out,
         "intervals": intervals,
         "medianInterval": _percentile(intervals, 0.5) if intervals else None,

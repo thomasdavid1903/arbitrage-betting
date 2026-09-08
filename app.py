@@ -13,6 +13,7 @@ from flask import Flask, jsonify, render_template, request
 
 import markets as market_scan
 import oddspapi
+import scheduler as scheduler_module
 import storage
 from core import best_stakes, overround, profit_if
 from main import BOOKMAKERS, COMPETITIONS, requests_needed
@@ -41,8 +42,14 @@ def scan(api_key, competitions=COMPETITIONS, bookmakers=BOOKMAKERS, precision=1)
         sink=observations, market_sink=market_sink,
     )
 
+    # Keep the raw collected markets so detection can be debugged and
+    # re-run offline instead of spending requests on every attempt.
+    _save_debug(market_sink)
+
     index = oddspapi.market_index(oddspapi.get_markets(api_key=api_key))
-    market_rows = market_scan.scan_markets(market_sink, matches, index)
+    operators = oddspapi.clone_groups(oddspapi.get_bookmakers(api_key=api_key))
+    market_rows = market_scan.scan_markets(market_sink, matches, index,
+                                           operators=operators)
     market_margins = market_scan.margins(market_sink, matches, index)
 
     teams = {m.fixture_id: (m.home, m.away) for m in matches}
@@ -90,10 +97,21 @@ def scan(api_key, competitions=COMPETITIONS, bookmakers=BOOKMAKERS, precision=1)
         "matches": rows,
         "observations": observations,
         "markets": market_rows,
+        "detector": market_scan.DETECTOR_VERSION,
         "marketSummary": market_scan.summarise(market_rows),
         "marketCoverage": market_scan.coverage(market_sink, index),
         "marketMargins": market_margins,
     }
+
+
+def _save_debug(market_sink):
+    try:
+        os.makedirs(oddspapi.CACHE_DIR, exist_ok=True)
+        path = os.path.join(oddspapi.CACHE_DIR, "last-markets.json")
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(market_sink, handle)
+    except (OSError, TypeError):
+        pass
 
 
 def load_cached_scan():
@@ -126,6 +144,44 @@ def history():
 @app.route("/markets")
 def markets_page():
     return render_template("markets.html")
+
+
+def _scan_and_store(api_key):
+    """One scan, recorded, as the scheduler runs it."""
+    payload = scan(api_key)
+    observations = payload.pop("observations", [])
+    storage.record_scan(payload, observations)
+    save_scan(payload)
+    return payload
+
+
+SCHEDULER = scheduler_module.Scheduler(_scan_and_store)
+
+
+@app.route("/api/schedule", methods=["GET"])
+def api_schedule_state():
+    return jsonify(SCHEDULER.state)
+
+
+@app.route("/api/schedule", methods=["POST"])
+def api_schedule():
+    body = request.get_json(silent=True) or {}
+
+    if body.get("action") == "stop":
+        ok, message = SCHEDULER.stop()
+        return jsonify({"ok": ok, "message": message, "state": SCHEDULER.state})
+
+    api_key = (body.get("apiKey") or os.environ.get("ODDSPAPI_KEY") or "").strip()
+    if not api_key:
+        return jsonify({"error": "no API key supplied"}), 400
+
+    ok, message = SCHEDULER.start(
+        api_key,
+        body.get("intervalSeconds") or 900,
+        body.get("budgetRequests") or 0,
+    )
+    status = 200 if ok else 400
+    return jsonify({"ok": ok, "message": message, "state": SCHEDULER.state}), status
 
 
 @app.route("/api/persistence")
