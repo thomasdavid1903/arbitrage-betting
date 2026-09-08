@@ -310,3 +310,22 @@ td.num { text-align: right; }
 }
 .book-link:hover { border-bottom-color: var(--series-1); }
 .book-link .book { font-size: 9.5px; }
+
+/* ---------- filters + risk badges ---------- */
+
+.filters { display: flex; gap: 18px; flex-wrap: wrap; margin: 0 0 12px; }
+.filters label {
+  align-items: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  font-size: 11px;
+  gap: 7px;
+  letter-spacing: .04em;
+}
+.filters input { accent-color: var(--series-1); cursor: pointer; }
+
+.pill.risk { background: rgba(230, 103, 103, .13); color: var(--critical); border: 1px solid var(--critical); }
+.pill.ok { background: rgba(13, 159, 190, .13); color: var(--series-1); border: 1px solid var(--series-1); }
+.rule-note { color: var(--text-muted); font-size: 10.5px; margin-top: 7px; line-height: 1.55; }
+.arb-card.divergent { border-left-color: var(--critical); }

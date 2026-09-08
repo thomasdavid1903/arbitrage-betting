@@ -128,6 +128,12 @@ def markets_page():
     return render_template("markets.html")
 
 
+@app.route("/api/persistence")
+def api_persistence():
+    """How long past arbitrages lasted. Read from stored scans, no API calls."""
+    return jsonify(storage.arb_persistence())
+
+
 @app.route("/api/history")
 def api_history():
     """Everything the analytics page needs, all from disk."""
@@ -145,8 +151,28 @@ def api_cached():
     payload = load_cached_scan()
     if payload is None:
         return jsonify({"empty": True})
+    _classify(payload)
     payload["fromCache"] = True
     return jsonify(payload)
+
+
+def _classify(payload):
+    """Fill in settlement-rule fields on a scan stored before they existed.
+
+    Rule risk follows from the market type alone, so it can be derived here
+    rather than costing a fresh scan.
+    """
+    rows = payload.get("markets") or []
+    changed = False
+    for row in rows:
+        if not row.get("ruleRisk"):
+            row["ruleRisk"], row["ruleNote"] = market_scan.rule_risk(row.get("marketType"))
+            changed = True
+    for row in payload.get("marketMargins") or []:
+        if not row.get("ruleRisk"):
+            row["ruleRisk"] = market_scan.rule_risk(row.get("marketType"))[0]
+    if changed or "standardRules" not in (payload.get("marketSummary") or {}):
+        payload["marketSummary"] = market_scan.summarise(rows)
 
 
 @app.route("/api/scan", methods=["POST"])

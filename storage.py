@@ -57,6 +57,7 @@ def record_scan(payload, observations):
         "bookmakers": payload.get("bookmakers"),
         "tournaments": payload.get("tournaments"),
         "matches": payload.get("matches"),
+        "markets": payload.get("markets"),
     }
     with open(SCANS_PATH, "a", encoding="utf-8", newline="") as handle:
         handle.write(json.dumps(summary) + "\n")
@@ -246,4 +247,98 @@ def stats():
         "last": scans[-1]["scannedAt"] if scans else None,
         "priceRows": sum(1 for _ in load_prices()),
         "bytes": prices,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Arbitrage persistence.
+#
+# The question a scanner has to answer about itself is not how many
+# arbitrages it finds but how long they last: an opportunity that is gone
+# before the next scan could never have been placed, however good it looked.
+#
+# Scans are irregular, so a lifetime measured this way is bounded by the gap
+# between them. An arbitrage seen once has a lifetime somewhere between zero
+# and the interval to the following scan -- reported as an upper bound rather
+# than a number.
+# ---------------------------------------------------------------------------
+
+
+def _arb_key(row):
+    """One opportunity, identified across scans."""
+    return "%s|%s" % (row.get("fixtureId"), row.get("marketId"))
+
+
+def arb_persistence():
+    """Every arbitrage seen, and how many consecutive scans it survived."""
+    scans = [s for s in load_scans() if s.get("markets") is not None]
+    if not scans:
+        return {"scans": 0, "opportunities": [], "intervals": []}
+
+    times = [_parse(s["scannedAt"]) for s in scans]
+    intervals = [
+        round((times[i + 1] - times[i]).total_seconds() / 60.0, 1)
+        for i in range(len(times) - 1)
+    ]
+
+    seen = {}
+    for index, scan in enumerate(scans):
+        for row in scan.get("markets") or []:
+            key = _arb_key(row)
+            entry = seen.setdefault(key, {
+                "key": key,
+                "market": row.get("marketName"),
+                "marketType": row.get("marketType"),
+                "ruleRisk": row.get("ruleRisk"),
+                "fixture": (row.get("home") or "") + " v " + (row.get("away") or ""),
+                "scanIndexes": [],
+                "ratios": [],
+            })
+            entry["scanIndexes"].append(index)
+            entry["ratios"].append(row.get("ratio"))
+
+    out = []
+    for entry in seen.values():
+        first, last = entry["scanIndexes"][0], entry["scanIndexes"][-1]
+        # Consecutive presence is what a scanner could actually have acted on.
+        run = 1
+        best_run = 1
+        for a, b in zip(entry["scanIndexes"], entry["scanIndexes"][1:]):
+            run = run + 1 if b == a + 1 else 1
+            best_run = max(best_run, run)
+
+        survived = (times[last] - times[first]).total_seconds() / 60.0
+        # Seen once: it lived at least until this scan and no longer than the
+        # gap to the next one, so that gap is the upper bound.
+        upper = None
+        if first == last and last + 1 < len(times):
+            upper = (times[last + 1] - times[last]).total_seconds() / 60.0
+
+        out.append({
+            "market": entry["market"],
+            "marketType": entry["marketType"],
+            "ruleRisk": entry["ruleRisk"],
+            "fixture": entry["fixture"],
+            "seenIn": len(entry["scanIndexes"]),
+            "longestRun": best_run,
+            "survivedMinutes": round(survived, 1),
+            "upperBoundMinutes": round(upper, 1) if upper is not None else None,
+            "stillOpen": last == len(scans) - 1,
+            "bestRatio": max(r for r in entry["ratios"] if r is not None),
+            "firstSeen": scans[first]["scannedAt"],
+            "lastSeen": scans[last]["scannedAt"],
+        })
+
+    out.sort(key=lambda r: (-r["longestRun"], -r["bestRatio"]))
+
+    survived_once = [r for r in out if r["seenIn"] > 1]
+    return {
+        "scans": len(scans),
+        "opportunities": out,
+        "intervals": intervals,
+        "medianInterval": _percentile(intervals, 0.5) if intervals else None,
+        "total": len(out),
+        "survived": len(survived_once),
+        "vanished": len(out) - len(survived_once),
+        "survivalRate": round(100.0 * len(survived_once) / len(out), 1) if out else None,
     }

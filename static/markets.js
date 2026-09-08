@@ -200,8 +200,14 @@ function drawClosest(margins) {
 
 function drawArbs(rows) {
   const box = document.getElementById('arbs');
+  const onlyStandard = document.getElementById('only-standard').checked;
+  const hidden = onlyStandard ? rows.filter(r => r.ruleRisk !== 'standard').length : 0;
+  if (onlyStandard) rows = rows.filter(r => r.ruleRisk === 'standard');
+
   if (!rows.length) {
-    box.innerHTML = '<p class="empty">No arbitrage in the last scan.</p>';
+    box.innerHTML = '<p class="empty">' +
+      (hidden ? 'All ' + hidden + ' were in markets the books settle differently.'
+              : 'No arbitrage in the last scan.') + '</p>';
     return;
   }
 
@@ -220,7 +226,8 @@ function drawArbs(rows) {
       ? 'capped at £' + r.total.toFixed(0) + ' by the books’ own limits'
       : 'shown on an example £' + r.total.toFixed(0) + ' stake; no published limit';
 
-    return '<div class="arb-card">' +
+    const divergent = r.ruleRisk !== 'standard';
+    return '<div class="arb-card' + (divergent ? ' divergent' : '') + '">' +
       '<div class="arb-head">' +
         '<div>' +
           '<div class="arb-title">' + r.marketName + (r.handicap ? ' <span class="book">(' + r.handicap + ')</span>' : '') + '</div>' +
@@ -229,11 +236,16 @@ function drawArbs(rows) {
         '<div class="arb-return">' +
           '<span class="pill arb">+' + pct(r.ratio) + '</span>' +
           (r.singleBook ? ' <span class="pill near">single book</span>' : '') +
+          (divergent ? ' <span class="pill risk">rules differ</span>'
+                     : ' <span class="pill ok">standard rules</span>') +
         '</div>' +
       '</div>' +
       '<table class="arb-legs"><thead><tr>' +
         '<th>Outcome</th><th class="num">Odds</th><th>Book</th><th class="num">Stake</th><th class="num">Max</th>' +
       '</tr></thead><tbody>' + legs + '</tbody></table>' +
+      (divergent ? '<div class="rule-note">Not necessarily an arbitrage' +
+        (r.ruleNote ? ': ' + esc(r.ruleNote) : '') +
+        '. Check both books’ settlement rules before treating these as two sides of one bet.</div>' : '') +
       '<div class="arb-foot">Profit £' + r.profit.toFixed(2) + ' whichever way it goes — ' + stakeNote + '. ' +
         (anyDeep
           ? 'Open each leg to check the price is still there before staking anything.'
@@ -241,6 +253,46 @@ function drawArbs(rows) {
       '</div>' +
     '</div>';
   }).join('');
+}
+
+/* ---------------- persistence ---------------- */
+
+function drawPersistence(p) {
+  const box = document.getElementById('persistence');
+  if (!p || !p.scans) {
+    box.innerHTML = '<p class="empty">Needs at least one stored scan with market data.</p>';
+    return;
+  }
+  if (p.scans < 2) {
+    box.innerHTML = '<p class="empty">One scan stored so far — lifetimes appear once there are two to compare.</p>';
+    return;
+  }
+
+  const rows = p.opportunities.map(r => {
+    const life = r.seenIn > 1
+      ? 'at least ' + fmtMinutes(r.survivedMinutes)
+      : (r.upperBoundMinutes ? 'under ' + fmtMinutes(r.upperBoundMinutes) : 'not yet known');
+    return '<tr>' +
+      '<td>' + esc(r.market) + '</td>' +
+      '<td class="book">' + esc(r.fixture) + '</td>' +
+      '<td>' + (r.ruleRisk === 'standard'
+        ? '<span class="pill ok">standard</span>'
+        : '<span class="pill risk">rules differ</span>') + '</td>' +
+      '<td class="num">' + r.seenIn + '</td>' +
+      '<td class="num">' + r.longestRun + '</td>' +
+      '<td>' + life + '</td>' +
+      '<td>' + (r.stillOpen ? '<span class="pill arb">open</span>' : 'closed') + '</td>' +
+    '</tr>';
+  }).join('');
+
+  box.innerHTML =
+    '<p class="rule-note">' + p.scans + ' scans compared, typically ' +
+      fmtMinutes(p.medianInterval) + ' apart. ' + p.survived + ' of ' + p.total +
+      ' opportunities were still there at the following scan (' + p.survivalRate + '%).</p>' +
+    '<div class="table-wrap"><table><thead><tr>' +
+      '<th>Market</th><th>Fixture</th><th>Rules</th><th class="num">Scans seen</th>' +
+      '<th class="num">Longest run</th><th>Lifetime</th><th>Status</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
 
 /* ---------------- tiles ---------------- */
@@ -252,7 +304,8 @@ function drawTiles(data) {
   tiles('tiles', [
     { label: 'Markets judged', value: c.judged.toLocaleString(), sub: 'of ' + c.collected.toLocaleString() + ' collected' },
     { label: 'Arbitrages', value: s.total, sub: s.crossBook + ' across two books', good: s.total > 0 },
-    { label: 'Best return', value: s.total ? '+' + pct(s.bestRatio) : '—', sub: 'per pound staked', good: s.total > 0 },
+    { label: 'Standard rules', value: s.standardRules, sub: 'of those, settled alike by both books', good: s.standardRules > 0 },
+    { label: 'Best return', value: s.standardRules ? '+' + pct(s.bestSolidRatio) : '—', sub: 'best with standard rules', good: s.standardRules > 0 },
     { label: '1X2 only', value: oneXtwo, sub: 'what the old scanner saw' },
     { label: 'Requests', value: data.requests, sub: 'same cost as before' }
   ]);
@@ -277,6 +330,16 @@ function render(data) {
   drawArbs(data.markets || []);
 }
 
+async function loadPersistence() {
+  try {
+    const res = await fetch('/api/persistence');
+    drawPersistence(await res.json());
+  } catch (err) {
+    document.getElementById('persistence').innerHTML =
+      '<p class="empty">Could not load stored scans.</p>';
+  }
+}
+
 async function load() {
   try {
     const res = await fetch('/api/cached');
@@ -286,6 +349,7 @@ async function load() {
       return;
     }
     render(data);
+    loadPersistence();
     setStatus('Scan from ' + fmtTime(new Date(data.scannedAt * 1000).toISOString()) +
       ' · ' + data.marketCoverage.judged.toLocaleString() + ' markets judged · read from cache', '');
   } catch (err) {
@@ -297,6 +361,10 @@ let resizeTimer = null;
 addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => { if (DATA) render(DATA); }, 150);
+});
+
+document.getElementById('only-standard').addEventListener('change', () => {
+  if (DATA) drawArbs((DATA.markets || []).slice());
 });
 
 load();

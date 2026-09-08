@@ -51,6 +51,17 @@
     </section>
 
     <section class="panel wide">
+      <h2>Do they last?</h2>
+      <p class="desc">
+        An opportunity gone before the next scan could never have been placed. Consecutive runs are what a
+        scanner could actually act on. Read this together with the rules column: a genuine mispricing should
+        close once a book notices, so one that sits open across scans is more likely to be a difference in how
+        the two books settle the bet than an error either will correct.
+      </p>
+      <div id="persistence"></div>
+    </section>
+
+    <section class="panel wide">
       <h2>Arbitrages found</h2>
       <p class="desc">
         Stakes are proportional to 1/odds, so every outcome returns the same. Where a bookmaker publishes a
@@ -58,6 +69,9 @@
         ceiling is unknown. Legs at a single bookmaker are flagged &mdash; those are far likelier to be an error
         the book will void than a genuine gap.
       </p>
+      <div class="filters">
+        <label><input type="checkbox" id="only-standard"> Only markets every book settles the same way</label>
+      </div>
       <div id="arbs"></div>
     </section>
 

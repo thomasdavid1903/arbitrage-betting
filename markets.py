@@ -18,6 +18,51 @@ the true ones -- so a market has to earn the right to be judged.
 
 from core import arb_stakes, implied_sum
 
+# ---------------------------------------------------------------------------
+# Settlement-rule risk.
+#
+# Two bookmakers can quote the same-looking line and settle it differently.
+# Where that happens the two legs are not opposite sides of one bet, so the
+# "arbitrage" is not one and both legs can lose.
+#
+# Goals are safe: every book settles ninety minutes plus stoppage time, extra
+# time excluded, and a goal is a goal. Bookings and corners are not:
+#
+#   - some books price booking points (10 a yellow, 25 a red), others count
+#     cards, and an Over/Under 2.5 line means different things under each
+#   - a second yellow may count as one card, two, or three
+#   - corners awarded but not taken, and whether extra time counts, vary
+#
+# That matters here because the large margins cluster precisely in those
+# markets, which is what you would expect if the edge is a rules artifact
+# rather than a pricing error.
+# ---------------------------------------------------------------------------
+
+RULE_DIVERGENT = "divergent"
+RULE_STANDARD = "standard"
+
+RULE_NOTES = {
+    "bookings": "books differ on booking points vs card counts, and on how a "
+                "red card is weighted",
+    "cards": "books differ on booking points vs card counts, and on how a "
+             "red card is weighted",
+    "corners": "books differ on corners awarded vs taken, and on whether "
+               "extra time counts",
+}
+
+
+def rule_risk(market_type):
+    """Whether a market type settles the same way at every bookmaker.
+
+    Returns (risk, note). A divergent market is not necessarily wrong, but it
+    cannot be treated as an arbitrage without checking both books' rules.
+    """
+    text = (market_type or "").lower()
+    for token, note in RULE_NOTES.items():
+        if token in text:
+            return RULE_DIVERGENT, note
+    return RULE_STANDARD, None
+
 # Markets with more outcomes than this are skipped: correct-score and
 # scorecast markets are long, thinly quoted, and rarely a clean partition.
 MAX_OUTCOMES = 4
@@ -108,10 +153,14 @@ def evaluate_fixture(fixture_markets, index, bankroll=None, min_ratio=0.0):
         if result["total"] < MIN_STAKE:
             continue
 
+        risk, note = rule_risk(definition.get("marketType"))
+
         found.append({
             "marketId": market_id,
             "marketName": definition.get("marketName"),
             "marketType": definition.get("marketType"),
+            "ruleRisk": risk,
+            "ruleNote": note,
             "period": definition.get("period"),
             "handicap": definition.get("handicap"),
             "outcomes": [{
@@ -188,11 +237,17 @@ def coverage(market_sink, index):
 def summarise(rows):
     """Counts for the page header: how many, and how many are actionable."""
     cross = [r for r in rows if not r["singleBook"]]
+    # The count that matters is the one left after both filters: two
+    # different books, and a market they settle the same way.
+    solid = [r for r in cross if r["ruleRisk"] == RULE_STANDARD]
     return {
         "total": len(rows),
         "crossBook": len(cross),
         "singleBook": len(rows) - len(cross),
+        "standardRules": len(solid),
+        "divergentRules": len(rows) - len([r for r in rows if r["ruleRisk"] == RULE_STANDARD]),
         "bestRatio": max((r["ratio"] for r in rows), default=0.0),
+        "bestSolidRatio": max((r["ratio"] for r in solid), default=0.0),
         "byType": _counts(r["marketType"] for r in rows),
     }
 
@@ -242,8 +297,10 @@ def margins(market_sink, matches, index):
             if len(best) != expected:
                 continue
 
+            risk, _ = rule_risk(definition.get("marketType"))
             rows.append({
                 "marketType": definition.get("marketType"),
+                "ruleRisk": risk,
                 "marketName": definition.get("marketName"),
                 "outcomes": expected,
                 "overround": round(implied_sum([d["price"] for d in best.values()]), 5),
