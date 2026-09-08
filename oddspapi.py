@@ -10,6 +10,7 @@ price alone is not actionable.
 Set the API key in the ODDSPAPI_KEY environment variable, or pass api_key=.
 """
 
+import json
 import os
 import time
 from collections import namedtuple
@@ -41,6 +42,35 @@ Match = namedtuple(
 
 _last_request_at = [0.0]
 
+# Requests made this process, so the UI can show what a scan actually cost.
+request_count = [0]
+
+CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
+
+# The tournament and participant lists barely change and cost a request each,
+# which is a real fraction of a small monthly quota.
+CACHE_TTL_SECONDS = 7 * 24 * 3600
+
+
+def _cached(name, ttl, build):
+    """Return a cached JSON payload, rebuilding it when stale or absent."""
+    path = os.path.join(CACHE_DIR, name + ".json")
+    try:
+        if time.time() - os.path.getmtime(path) < ttl:
+            with open(path, encoding="utf-8") as handle:
+                return json.load(handle)
+    except (OSError, ValueError):
+        pass
+
+    value = build()
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(value, handle)
+    except OSError:
+        pass
+    return value
+
 
 class OddsPapiError(RuntimeError):
     pass
@@ -61,6 +91,7 @@ def _get(path, api_key=None, retries=3, **params):
 
         response = requests.get(BASE_URL + path, params=params, timeout=60)
         _last_request_at[0] = time.monotonic()
+        request_count[0] += 1
 
         if response.status_code == 429:
             body = response.json().get("error", {})
@@ -76,14 +107,20 @@ def _get(path, api_key=None, retries=3, **params):
     raise OddsPapiError("%s still rate limited after %d attempts" % (path, retries))
 
 
-def get_tournaments(sport_id=SPORT_FOOTBALL, api_key=None):
+def get_tournaments(sport_id=SPORT_FOOTBALL, api_key=None, use_cache=True):
     """All tournaments for a sport, as returned by the API."""
-    return _get("/v4/tournaments", api_key=api_key, sportId=sport_id)
+    build = lambda: _get("/v4/tournaments", api_key=api_key, sportId=sport_id)
+    if not use_cache:
+        return build()
+    return _cached("tournaments-%s" % sport_id, CACHE_TTL_SECONDS, build)
 
 
-def get_participants(sport_id=SPORT_FOOTBALL, api_key=None):
+def get_participants(sport_id=SPORT_FOOTBALL, api_key=None, use_cache=True):
     """Map of participant id (as a string) to team name."""
-    return _get("/v4/participants", api_key=api_key, sportId=sport_id)
+    build = lambda: _get("/v4/participants", api_key=api_key, sportId=sport_id)
+    if not use_cache:
+        return build()
+    return _cached("participants-%s" % sport_id, CACHE_TTL_SECONDS, build)
 
 
 def find_tournament_ids(competitions, sport_id=SPORT_FOOTBALL, api_key=None,

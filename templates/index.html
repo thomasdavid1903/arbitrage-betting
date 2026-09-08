@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arbitrage Scanner</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Arbitrage <span class="accent">Scanner</span></h1>
+      <p class="tagline">1X2 cross-book pricing &middot; OddsPapi feed &middot; overround &lt; 1.0 = risk-free</p>
+    </div>
+    <div class="controls">
+      <input type="password" id="key" placeholder="ODDSPAPI_KEY" autocomplete="off" spellcheck="false">
+      <button id="scan" class="primary">Scan</button>
+      <button id="reload">Last scan</button>
+    </div>
+  </header>
+
+  <div class="status" id="status"><span class="dot"></span><span id="status-text">Idle &mdash; paste a key and scan, or load the last result.</span></div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="grid">
+
+    <section class="panel wide">
+      <h2>Closest to arbitrage</h2>
+      <p class="desc">Overround per match: the three best prices' implied probabilities, summed. Anything below 1.0 pays out whichever way the match goes.</p>
+      <div class="legend" id="legend-margin"></div>
+      <div class="chart-wrap"><svg id="chart-margin"></svg></div>
+    </section>
+
+    <section class="panel">
+      <h2>Margin distribution</h2>
+      <p class="desc">How the whole book of matches is priced. The market sits to the right of the 1.0 line; the tail approaching it is where opportunity lives.</p>
+      <div class="chart-wrap"><svg id="chart-hist"></svg></div>
+    </section>
+
+    <section class="panel">
+      <h2>Bookmaker edge</h2>
+      <p class="desc">How often each book posts the best price, split by outcome. A book leading one column only is where a mispricing hides.</p>
+      <div class="legend" id="legend-books"></div>
+      <div class="chart-wrap"><svg id="chart-books"></svg></div>
+    </section>
+
+    <section class="panel wide">
+      <h2>Arbitrage geometry</h2>
+      <p class="desc">
+        The stake space for the selected match. Stake on the home win is x, the draw is y, and the away stake is fixed at &pound;1000.
+        Each outcome contributes one constraint; the region satisfying all three is the arbitrage. Pick any row in the table below.
+      </p>
+      <div class="legend" id="legend-geom"></div>
+      <div class="chart-wrap"><svg id="chart-geom"></svg></div>
+    </section>
+
+    <section class="panel wide">
+      <h2>Matches</h2>
+      <p class="desc">Every fixture priced on all three outcomes, best price first. Click a row to plot its stake space above.</p>
+      <div class="table-wrap"><table id="table">
+        <thead><tr>
+          <th>Match</th><th>Kick-off</th>
+          <th class="num">Home</th><th class="num">Draw</th><th class="num">Away</th>
+          <th>Best books</th><th class="num">Overround</th><th>State</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </section>
+
+  </div>
+</div>
+
+<div id="tooltip"></div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
