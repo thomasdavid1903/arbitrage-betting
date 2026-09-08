@@ -226,8 +226,10 @@ function drawArbs(rows) {
       ? 'capped at £' + r.total.toFixed(0) + ' by the books’ own limits'
       : 'shown on an example £' + r.total.toFixed(0) + ' stake; no published limit';
 
-    const divergent = r.ruleRisk !== 'standard';
-    return '<div class="arb-card' + (divergent ? ' divergent' : '') + '">' +
+    const divergent = r.ruleRisk === 'divergent';
+    const unchecked = r.ruleRisk === 'unknown';
+    const flagged = divergent || unchecked;
+    return '<div class="arb-card' + (flagged ? ' divergent' : '') + '">' +
       '<div class="arb-head">' +
         '<div>' +
           '<div class="arb-title">' + r.marketName + (r.handicap ? ' <span class="book">(' + r.handicap + ')</span>' : '') + '</div>' +
@@ -237,13 +239,15 @@ function drawArbs(rows) {
           '<span class="pill arb">+' + pct(r.ratio) + '</span>' +
           (r.singleBook ? ' <span class="pill near">single book</span>' : '') +
           (divergent ? ' <span class="pill risk">rules differ</span>'
-                     : ' <span class="pill ok">standard rules</span>') +
+            : unchecked ? ' <span class="pill near">rules unchecked</span>'
+            : ' <span class="pill ok">standard rules</span>') +
         '</div>' +
       '</div>' +
       '<table class="arb-legs"><thead><tr>' +
         '<th>Outcome</th><th class="num">Odds</th><th>Book</th><th class="num">Stake</th><th class="num">Max</th>' +
       '</tr></thead><tbody>' + legs + '</tbody></table>' +
-      (divergent ? '<div class="rule-note">Not necessarily an arbitrage' +
+      (flagged ? '<div class="rule-note">' +
+        (divergent ? 'Not an arbitrage as it stands' : 'Not confirmed as an arbitrage') +
         (r.ruleNote ? ': ' + esc(r.ruleNote) : '') +
         '. Check both books’ settlement rules before treating these as two sides of one bet.</div>' : '') +
       '<div class="arb-foot">Profit £' + r.profit.toFixed(2) + ' whichever way it goes — ' + stakeNote + '. ' +
@@ -275,9 +279,9 @@ function drawPersistence(p) {
     return '<tr>' +
       '<td>' + esc(r.market) + '</td>' +
       '<td class="book">' + esc(r.fixture) + '</td>' +
-      '<td>' + (r.ruleRisk === 'standard'
-        ? '<span class="pill ok">standard</span>'
-        : '<span class="pill risk">rules differ</span>') + '</td>' +
+      '<td>' + (r.ruleRisk === 'standard' ? '<span class="pill ok">standard</span>'
+        : r.ruleRisk === 'divergent' ? '<span class="pill risk">rules differ</span>'
+        : '<span class="pill near">unchecked</span>') + '</td>' +
       '<td class="num">' + r.seenIn + '</td>' +
       '<td class="num">' + r.longestRun + '</td>' +
       '<td>' + life + '</td>' +

@@ -165,13 +165,15 @@ def _classify(payload):
     rows = payload.get("markets") or []
     changed = False
     for row in rows:
-        if not row.get("ruleRisk"):
-            row["ruleRisk"], row["ruleNote"] = market_scan.rule_risk(row.get("marketType"))
+        books = sorted({o.get("book") for o in row.get("outcomes") or [] if o.get("book")})
+        risk, note = market_scan.rule_risk(row.get("marketType"), books)
+        if row.get("ruleRisk") != risk:
+            row["ruleRisk"], row["ruleNote"] = risk, note
             changed = True
     for row in payload.get("marketMargins") or []:
         if not row.get("ruleRisk"):
             row["ruleRisk"] = market_scan.rule_risk(row.get("marketType"))[0]
-    if changed or "standardRules" not in (payload.get("marketSummary") or {}):
+    if changed or "uncheckedRules" not in (payload.get("marketSummary") or {}):
         payload["marketSummary"] = market_scan.summarise(rows)
 
 

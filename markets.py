@@ -39,42 +39,72 @@ from core import arb_stakes, implied_sum
 # ---------------------------------------------------------------------------
 
 RULE_DIVERGENT = "divergent"
+RULE_UNKNOWN = "unknown"
 RULE_STANDARD = "standard"
 
-RULE_NOTES = {
-    "bookings": "books differ on booking points vs card counts, and on how a "
-                "red card is weighted",
-    "cards": "books differ on booking points vs card counts, and on how a "
-             "red card is weighted",
-    "corners": "books differ on corners awarded vs taken, and on whether "
+# Which market families depend on a bookmaker's own definitions at all.
+# Goals do not: every book settles ninety minutes plus stoppage, extra time
+# excluded, and a goal is a goal.
+RULE_FAMILIES = {
+    "bookings": "cards",
+    "cards": "cards",
+    "corners": "corners",
+}
+
+# How each bookmaker settles a family, where it has been checked against the
+# book's published rules. Books absent from a family are not assumed to match
+# -- an unchecked pair is reported as unknown, not as safe.
+#
+# cards-1-2-ignore-second: yellow 1, red 2, second yellows ignored, so a
+#   player tops out at 3; ninety minutes only; non-players excluded.
+#   Verified for pinnacle and bet365 (their published rules agree exactly).
+#   The competing convention is booking points -- yellow 10, red 25, a
+#   second yellow counting 35 -- which settles an Over/Under line quite
+#   differently.
+BOOK_RULE_SYSTEMS = {
+    "cards": {
+        "pinnacle": "cards-1-2-ignore-second",
+        "bet365": "cards-1-2-ignore-second",
+    },
+    "corners": {},
+}
+
+FAMILY_NOTES = {
+    "cards": "books differ on whether cards or booking points are counted, "
+             "and on how a second yellow is treated",
+    "corners": "books differ on corners awarded versus taken, and on whether "
                "extra time counts",
 }
 
 
-def rule_risk(market_type):
-    """Whether a market type settles the same way at every bookmaker.
+def rule_risk(market_type, books=None):
+    """Whether the books involved settle this market the same way.
 
-    Returns (risk, note). A divergent market is not necessarily wrong, but it
-    cannot be treated as an arbitrage without checking both books' rules.
+    Returns (risk, note).
+
+    A market on goals is standard for every bookmaker. A market on cards or
+    corners depends on each book's own definitions, so it is judged on the
+    books actually quoting it: matching verified systems are standard,
+    differing ones divergent, and anything unchecked is unknown rather than
+    assumed safe.
     """
     text = (market_type or "").lower()
-    for token, note in RULE_NOTES.items():
-        if token in text:
-            return RULE_DIVERGENT, note
-    return RULE_STANDARD, None
+    family = next((f for token, f in RULE_FAMILIES.items() if token in text), None)
+    if family is None:
+        return RULE_STANDARD, None
 
-# Markets with more outcomes than this are skipped: correct-score and
-# scorecast markets are long, thinly quoted, and rarely a clean partition.
-MAX_OUTCOMES = 4
+    note = FAMILY_NOTES[family]
+    if not books:
+        return RULE_UNKNOWN, note
 
-# An arbitrage capped below this is not worth the two bets it takes.
-MIN_STAKE = 20.0
-
-# A bookmaker builds a margin into its own book, so its complete quote should
-# always imply more than 1. Anything below this means the outcomes have been
-# mismapped -- prices from different underlying markets merged into one -- and
-# the market cannot be trusted, however attractive it looks.
-SELF_ARB_FLOOR = 1.0
+    known = BOOK_RULE_SYSTEMS.get(family, {})
+    systems = {known.get(b) for b in books}
+    if None in systems:
+        unchecked = sorted(b for b in books if b not in known)
+        return RULE_UNKNOWN, note + " (rules not yet checked for %s)" % ", ".join(unchecked)
+    if len(systems) == 1:
+        return RULE_STANDARD, None
+    return RULE_DIVERGENT, note
 
 
 def _book_quotes_market(prices, expected):
@@ -153,7 +183,7 @@ def evaluate_fixture(fixture_markets, index, bankroll=None, min_ratio=0.0):
         if result["total"] < MIN_STAKE:
             continue
 
-        risk, note = rule_risk(definition.get("marketType"))
+        risk, note = rule_risk(definition.get("marketType"), sorted(set(books)))
 
         found.append({
             "marketId": market_id,
@@ -245,7 +275,8 @@ def summarise(rows):
         "crossBook": len(cross),
         "singleBook": len(rows) - len(cross),
         "standardRules": len(solid),
-        "divergentRules": len(rows) - len([r for r in rows if r["ruleRisk"] == RULE_STANDARD]),
+        "uncheckedRules": len([r for r in rows if r["ruleRisk"] == RULE_UNKNOWN]),
+        "divergentRules": len([r for r in rows if r["ruleRisk"] == RULE_DIVERGENT]),
         "bestRatio": max((r["ratio"] for r in rows), default=0.0),
         "bestSolidRatio": max((r["ratio"] for r in solid), default=0.0),
         "byType": _counts(r["marketType"] for r in rows),
@@ -297,7 +328,8 @@ def margins(market_sink, matches, index):
             if len(best) != expected:
                 continue
 
-            risk, _ = rule_risk(definition.get("marketType"))
+            risk, _ = rule_risk(definition.get("marketType"),
+                                sorted(set(d["book"] for d in best.values())))
             rows.append({
                 "marketType": definition.get("marketType"),
                 "ruleRisk": risk,
