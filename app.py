@@ -8,6 +8,7 @@ reloading the page does not spend quota.
 import json
 import os
 import time
+from collections import namedtuple
 
 from flask import Flask, jsonify, render_template, request
 
@@ -104,10 +105,59 @@ def scan(api_key, competitions=COMPETITIONS, bookmakers=BOOKMAKERS, precision=1)
     }
 
 
+RAW_MARKETS = "last-markets.json"
+
+
+def _rederive(payload):
+    """Recompute a stored scan's arbitrages with the current detector.
+
+    A guard change alters what counts as an arbitrage, so a scan found by an
+    older detector must not be shown as though it were current -- that is how
+    a fixed false positive stays on the page. The raw markets are kept for
+    exactly this, so it costs no requests.
+
+    Returns True when the payload was rebuilt.
+    """
+    if payload.get("detector") == market_scan.DETECTOR_VERSION:
+        return False
+
+    path = os.path.join(oddspapi.CACHE_DIR, RAW_MARKETS)
+    try:
+        with open(path, encoding="utf-8") as handle:
+            sink = json.load(handle)
+    except (OSError, ValueError):
+        # Nothing to rebuild from: say so rather than showing stale results.
+        payload["markets"] = []
+        payload["marketSummary"] = market_scan.summarise([])
+        payload["stale"] = True
+        return True
+
+    index = oddspapi.market_index(oddspapi.get_markets())
+    operators = oddspapi.clone_groups(oddspapi.get_bookmakers())
+
+    meta = {m["fixtureId"]: m for m in payload.get("matches") or []}
+    Match = namedtuple("Match", "fixture_id home away start_time")
+    matches = [
+        Match(fid, meta.get(fid, {}).get("home", ""),
+              meta.get(fid, {}).get("away", ""),
+              meta.get(fid, {}).get("startTime"))
+        for fid in sink
+    ]
+
+    payload["markets"] = market_scan.scan_markets(sink, matches, index,
+                                                  operators=operators)
+    payload["marketMargins"] = market_scan.margins(sink, matches, index)
+    payload["marketSummary"] = market_scan.summarise(payload["markets"])
+    payload["marketCoverage"] = market_scan.coverage(sink, index)
+    payload["detector"] = market_scan.DETECTOR_VERSION
+    payload["rederived"] = True
+    return True
+
+
 def _save_debug(market_sink):
     try:
         os.makedirs(oddspapi.CACHE_DIR, exist_ok=True)
-        path = os.path.join(oddspapi.CACHE_DIR, "last-markets.json")
+        path = os.path.join(oddspapi.CACHE_DIR, RAW_MARKETS)
         with open(path, "w", encoding="utf-8") as handle:
             json.dump(market_sink, handle)
     except (OSError, TypeError):
@@ -207,6 +257,8 @@ def api_cached():
     payload = load_cached_scan()
     if payload is None:
         return jsonify({"empty": True})
+    if _rederive(payload):
+        save_scan(payload)
     _classify(payload)
     payload["fromCache"] = True
     return jsonify(payload)
