@@ -190,3 +190,73 @@ def plot_region(bet1: float, bet2: float, bet3: float, precision: int = 1, z: fl
     ax.fill_between(x, (z + x) / bet2, z * bet3, alpha=.4, color='yellow')
     ax.legend()
     return fig, ax
+
+
+# ---------------------------------------------------------------------------
+# Any-market arbitrage.
+#
+# The functions above solve the three-way case geometrically, searching a grid
+# of stake combinations. That was fine for 1X2, but most markets a bookmaker
+# prices are two-way (over/under, both teams to score, handicaps), and for any
+# number of outcomes the answer is analytic rather than searched.
+#
+# Working in decimal odds: stake s_i on outcome i returns s_i * d_i if it wins
+# and nothing otherwise. To be paid the same whichever outcome lands, the
+# stakes must be proportional to 1 / d_i. Writing S = sum(1 / d_i), staking a
+# total T gives every outcome the same return T / S, so the profit is
+# T * (1/S - 1) regardless of result. An arbitrage is therefore exactly S < 1,
+# and the return per pound staked is 1/S - 1 -- no search, no fixed stake.
+# ---------------------------------------------------------------------------
+
+
+def implied_sum(decimals) -> float:
+    """Sum of implied probabilities. Below 1 is an arbitrage."""
+    return sum(1.0 / d for d in decimals)
+
+
+def arb_stakes(decimals, bankroll=None, limits=None):
+    """Stakes that pay the same whichever outcome wins.
+
+    `decimals` are decimal odds, one per outcome of a single market.
+    `bankroll` caps the total staked; `limits` caps each individual stake at
+    what that bookmaker will accept.
+
+    Returns None when the prices are not an arbitrage, otherwise a dict with
+    the stakes, the total, the guaranteed profit, and the return per pound.
+
+    The stake limits matter in practice: the observed median limit is a few
+    hundred pounds, so an arbitrage that looks good can still be capped to a
+    size not worth placing.
+    """
+    if any(d <= 1 for d in decimals):
+        return None
+
+    total_implied = implied_sum(decimals)
+    if total_implied >= 1:
+        return None
+
+    weights = [(1.0 / d) / total_implied for d in decimals]
+
+    total = float(bankroll) if bankroll else None
+    capped_by = None
+    if limits:
+        for weight, limit in zip(weights, limits):
+            if not limit or weight <= 0:
+                continue
+            allowed = limit / weight
+            if total is None or allowed < total:
+                total, capped_by = allowed, limit
+    if total is None:
+        total = 100.0
+
+    stakes = [total * w for w in weights]
+    profit = total * (1.0 / total_implied - 1.0)
+
+    return {
+        "stakes": stakes,
+        "total": total,
+        "profit": profit,
+        "ratio": 1.0 / total_implied - 1.0,
+        "impliedSum": total_implied,
+        "limited": capped_by is not None,
+    }

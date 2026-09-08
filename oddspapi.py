@@ -123,6 +123,83 @@ def get_participants(sport_id=SPORT_FOOTBALL, api_key=None, use_cache=True):
     return _cached("participants-%s" % sport_id, CACHE_TTL_SECONDS, build)
 
 
+def get_markets(sport_id=SPORT_FOOTBALL, api_key=None, use_cache=True):
+    """Market definitions: id, name, type, period, handicap and outcome names.
+
+    marketLength is the number of outcomes the market has, which is what makes
+    it safe to price a market at all: an arbitrage can only be judged when
+    every outcome is covered.
+    """
+    build = lambda: _get("/v4/markets", api_key=api_key, sportId=sport_id)
+    if not use_cache:
+        return build()
+    return _cached("markets-%s" % sport_id, CACHE_TTL_SECONDS, build)
+
+
+def market_index(markets):
+    """Market definitions keyed by id as a string."""
+    return {str(m["marketId"]): m for m in markets}
+
+
+def collect_all_markets(fixture, into=None):
+    """Every market a fixture offers, kept per bookmaker.
+
+    Same idea as collect_prices, but for all ~80 markets a fixture carries
+    rather than only 1X2. The response already contains them, so this costs
+    no extra requests.
+
+    Prices are stored per bookmaker rather than immediately reduced to the
+    best, because judging whether a market is trustworthy needs each book's
+    own complete quote -- see markets.evaluate_fixture.
+
+    Shape: {marketId: {bookmaker: {outcomeId: {price, limit, label,
+                                               sourceMarket, mainLine}}}}
+    """
+    if into is None:
+        into = {}
+
+    for book_name, book in (fixture.get("bookmakerOdds") or {}).items():
+        if not book.get("bookmakerIsActive", True):
+            continue
+
+        for market_id, market in (book.get("markets") or {}).items():
+            if market.get("marketActive") is False:
+                continue
+            slot = into.setdefault(market_id, {}).setdefault(book_name, {})
+
+            for outcome_id, outcome in (market.get("outcomes") or {}).items():
+                player = (outcome.get("players") or {}).get("0") or {}
+                price = player.get("price")
+                if price is None or not player.get("active", True):
+                    continue
+
+                # The betslip link names the bookmaker's own market for this
+                # selection. When outcomes of one normalised market point at
+                # different bookmaker markets, they are not the same bet and
+                # must not be combined.
+                source = player.get("betslip") or market.get("bookmakerMarketId")
+
+                slot[outcome_id] = {
+                    "price": float(price),
+                    "limit": player.get("limit"),
+                    "label": player.get("bookmakerOutcomeId"),
+                    "changedAt": player.get("changedAt"),
+                    "mainLine": player.get("mainLine"),
+                    "sourceMarket": _source_market(source),
+                }
+    return into
+
+
+def _source_market(source):
+    """The bookmaker's own market identifier, pulled out of a betslip URL."""
+    if not source:
+        return None
+    text = str(source)
+    if "marketId=" in text:
+        return text.split("marketId=")[1].split("&")[0]
+    return text
+
+
 def find_tournament_ids(competitions, sport_id=SPORT_FOOTBALL, api_key=None,
                         tournaments=None):
     """Resolve (category, slug) pairs to the numeric ids the API wants.
@@ -218,7 +295,7 @@ def collect_prices(fixture, into=None, sink=None):
 
 
 def get_bets(tournament_ids, bookmakers, api_key=None, verbose=False, names=None,
-             sink=None):
+             sink=None, market_sink=None):
     """Match rows for the given tournaments, shaped like the scraper's output.
 
     The API accepts exactly one bookmaker per request, so this makes one call
@@ -260,6 +337,8 @@ def get_bets(tournament_ids, bookmakers, api_key=None, verbose=False, names=None
                 continue
             key = fixture["fixtureId"]
             merged[key] = collect_prices(fixture, merged.get(key), sink=sink)
+            if market_sink is not None:
+                market_sink[key] = collect_all_markets(fixture, market_sink.get(key))
             meta.setdefault(key, fixture)
             priced += 1
 

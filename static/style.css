@@ -281,3 +281,22 @@ td.num { text-align: right; }
 #tooltip .t-row span:last-child { color: var(--text-primary); font-variant-numeric: tabular-nums; }
 
 .empty { color: var(--text-muted); padding: 34px 0; text-align: center; font-size: 12px; }
+
+
+/* ---------- arbitrage cards ---------- */
+
+.arb-card {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--good);
+  border-radius: 7px;
+  margin-bottom: 10px;
+  padding: 13px 15px;
+}
+.arb-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.arb-title { font-size: 12.5px; font-weight: 600; letter-spacing: .02em; }
+.arb-return { white-space: nowrap; }
+.arb-legs { margin-top: 10px; width: auto; min-width: min(100%, 520px); }
+.arb-legs th { border-bottom: 1px solid var(--line-soft); }
+.arb-legs td { border-bottom: none; padding: 4px 11px; }
+.arb-foot { color: var(--text-muted); font-size: 10.5px; margin-top: 8px; }

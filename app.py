@@ -11,6 +11,7 @@ import time
 
 from flask import Flask, jsonify, render_template, request
 
+import markets as market_scan
 import oddspapi
 import storage
 from core import best_stakes, overround, profit_if
@@ -32,10 +33,17 @@ def scan(api_key, competitions=COMPETITIONS, bookmakers=BOOKMAKERS, precision=1)
     # Every individual price is kept, not just the best, so that price
     # movement can be measured later without spending more requests.
     observations = []
+    # The same responses carry ~80 markets per fixture; collecting them all
+    # costs no extra requests.
+    market_sink = {}
     matches = oddspapi.get_bets(
         list(found.values()), bookmakers, api_key=api_key, names=names,
-        sink=observations,
+        sink=observations, market_sink=market_sink,
     )
+
+    index = oddspapi.market_index(oddspapi.get_markets(api_key=api_key))
+    market_rows = market_scan.scan_markets(market_sink, matches, index)
+    market_margins = market_scan.margins(market_sink, matches, index)
 
     teams = {m.fixture_id: (m.home, m.away) for m in matches}
     for row in observations:
@@ -81,6 +89,10 @@ def scan(api_key, competitions=COMPETITIONS, bookmakers=BOOKMAKERS, precision=1)
         "missing": ["%s/%s" % key for key in missing],
         "matches": rows,
         "observations": observations,
+        "markets": market_rows,
+        "marketSummary": market_scan.summarise(market_rows),
+        "marketCoverage": market_scan.coverage(market_sink, index),
+        "marketMargins": market_margins,
     }
 
 
@@ -109,6 +121,11 @@ def index():
 @app.route("/history")
 def history():
     return render_template("history.html")
+
+
+@app.route("/markets")
+def markets_page():
+    return render_template("markets.html")
 
 
 @app.route("/api/history")

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>All Markets</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>All <span class="accent">Markets</span></h1>
+      <p class="tagline">Every market in the response &middot; totals, corners, bookings, handicaps &middot; not just 1X2</p>
+      <nav>
+        <a href="/">Scanner</a>
+        <a href="/markets" class="active">All markets</a>
+        <a href="/history">Price movement</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="status" id="status"><span class="dot"></span><span id="status-text">Loading last scan&hellip;</span></div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="grid">
+
+    <section class="panel wide">
+      <h2>Where the soft prices are</h2>
+      <p class="desc">
+        Best achievable overround per market type, against the median for that type. The best marker crossing
+        the 1.0 line is an arbitrage. This is the chart that says where to hunt: the match-result market never
+        crosses, while bookings and corners do.
+      </p>
+      <div class="legend" id="legend-types"></div>
+      <div class="chart-wrap"><svg id="chart-types"></svg></div>
+    </section>
+
+    <section class="panel">
+      <h2>Overround across all markets</h2>
+      <p class="desc">Every judged market in the scan. Compare the spread here with the single narrow cluster the 1X2-only scanner sees.</p>
+      <div class="chart-wrap"><svg id="chart-dist"></svg></div>
+    </section>
+
+    <section class="panel">
+      <h2>Closest markets</h2>
+      <p class="desc">The individual markets nearest an arbitrage, whatever their type.</p>
+      <div class="chart-wrap"><svg id="chart-closest"></svg></div>
+    </section>
+
+    <section class="panel wide">
+      <h2>Arbitrages found</h2>
+      <p class="desc">
+        Stakes are proportional to 1/odds, so every outcome returns the same. Where a bookmaker publishes a
+        maximum stake the total is capped to it; otherwise a &pound;100 stake is shown as an example and the real
+        ceiling is unknown. Legs at a single bookmaker are flagged &mdash; those are far likelier to be an error
+        the book will void than a genuine gap.
+      </p>
+      <div id="arbs"></div>
+    </section>
+
+  </div>
+</div>
+
+<div id="tooltip"></div>
+<script src="{{ url_for('static', filename='chart-lib.js') }}"></script>
+<script src="{{ url_for('static', filename='markets.js') }}"></script>
+</body>
+</html>
