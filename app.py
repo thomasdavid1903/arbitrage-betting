@@ -14,6 +14,7 @@ from flask import Flask, jsonify, render_template, request
 
 import markets as market_scan
 import oddspapi
+import value as value_scan
 import scheduler as scheduler_module
 import storage
 from core import best_stakes, overround, profit_if
@@ -326,6 +327,55 @@ def api_cached_tennis():
         return jsonify({"empty": True})
     payload["fromCache"] = True
     return jsonify(payload)
+
+
+@app.route("/value")
+def value_page():
+    return render_template("value.html")
+
+
+@app.route("/api/value")
+def api_value():
+    """Value bets computed from the last scan's raw markets.
+
+    Costs no requests: the raw markets are already kept on disk.
+    """
+    sport = request.args.get("sport", "football")
+    raw = TENNIS_RAW if sport == "tennis" else RAW_MARKETS
+    cache = TENNIS_CACHE if sport == "tennis" else SCAN_CACHE
+
+    try:
+        with open(os.path.join(oddspapi.CACHE_DIR, raw), encoding="utf-8") as handle:
+            sink = json.load(handle)
+    except (OSError, ValueError):
+        return jsonify({"empty": True})
+
+    try:
+        with open(cache, encoding="utf-8") as handle:
+            scan_payload = json.load(handle)
+    except (OSError, ValueError):
+        scan_payload = {}
+
+    meta = {m["fixtureId"]: m for m in scan_payload.get("matches") or []}
+    Match = namedtuple("Match", "fixture_id home away start_time")
+    matches = [
+        Match(fid, meta.get(fid, {}).get("home", ""),
+              meta.get(fid, {}).get("away", ""),
+              meta.get(fid, {}).get("startTime"))
+        for fid in sink
+    ]
+
+    index = oddspapi.market_index(oddspapi.get_markets())
+    operators = oddspapi.clone_groups(oddspapi.get_bookmakers())
+    rows = value_scan.find_value(sink, matches, index, operators=operators)
+
+    return jsonify({
+        "sport": sport,
+        "scannedAt": scan_payload.get("scannedAt"),
+        "rows": rows[:300],
+        "summary": value_scan.summarise(rows),
+        "arbCount": len(scan_payload.get("markets") or []),
+    })
 
 
 @app.route("/api/persistence")

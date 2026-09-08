@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Value Bets</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Value <span class="accent">Bets</span></h1>
+      <p class="tagline">Prices that beat Pinnacle&rsquo;s fair odds &middot; one leg, not two &middot; positive expectation, not risk-free</p>
+      <nav>
+        <a href="/">Scanner</a>
+        <a href="/markets">All markets</a>
+        <a href="/value" class="active">Value bets</a>
+        <a href="/history">Price movement</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="filters" style="margin:16px 0 0">
+    <label><input type="radio" name="sport" value="football" checked> Football</label>
+    <label><input type="radio" name="sport" value="tennis"> Tennis</label>
+    <label><input type="checkbox" id="only-standard"> Only markets both books settle alike</label>
+  </div>
+
+  <div class="status" id="status"><span class="dot"></span><span id="status-text">Loading&hellip;</span></div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="grid">
+
+    <section class="panel wide">
+      <h2>How this differs from arbitrage</h2>
+      <p class="desc">
+        An arbitrage needs two bookmakers wrong at once, which is why the same scan finds a handful. A value bet
+        needs one: take Pinnacle&rsquo;s prices as the best available estimate of what will happen, strip its
+        margin out, and look for a soft book offering more than that. You carry the risk &mdash; most of these
+        lose &mdash; but the expectation is positive and the opportunities are an order of magnitude more common.
+        Nothing here suggests placing anything.
+      </p>
+      <p class="footnote" id="method-note"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Which books are loose</h2>
+      <p class="desc">Count of value prices per bookmaker, with the mean edge. This is the practical output: it says where to look.</p>
+      <div class="chart-wrap"><svg id="chart-books"></svg></div>
+    </section>
+
+    <section class="panel">
+      <h2>Edge distribution</h2>
+      <p class="desc">Every value price found. A long right tail is usually a fault in the method rather than a windfall, so it is worth watching this shape.</p>
+      <div class="chart-wrap"><svg id="chart-dist"></svg></div>
+    </section>
+
+    <section class="panel wide">
+      <h2>Best available</h2>
+      <p class="desc">
+        Kelly is the share of a bankroll the formula suggests at full stake &mdash; treat it as an upper bound, not
+        a recommendation, since the probability is itself an estimate from another bookmaker&rsquo;s prices.
+      </p>
+      <div class="table-wrap"><table id="table">
+        <thead><tr>
+          <th>Market</th><th>Outcome</th><th>Fixture</th><th>Book</th>
+          <th class="num">Price</th><th class="num">Fair</th><th class="num">Edge</th>
+          <th class="num">Kelly</th><th class="num">Max</th><th>Rules</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </section>
+
+  </div>
+</div>
+
+<div id="tooltip"></div>
+<script src="{{ url_for('static', filename='chart-lib.js') }}"></script>
+<script src="{{ url_for('static', filename='value.js') }}"></script>
+</body>
+</html>
