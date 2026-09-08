@@ -1,6 +1,6 @@
 beautifulsoup4
-urllib
-numpy
 matplotlib
-tabulate
+numpy
 pandas
+requests
+tabulate

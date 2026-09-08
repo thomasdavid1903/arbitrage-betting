@@ -1,16 +1,13 @@
-
-
-import numpy as np
-import matplotlib.pyplot as plt
-import pylab as pl
 import math
 
-
 import numpy as np
-import matplotlib.pyplot as plt
-import pylab as pl
-import math
+
+
 def line_intersection(line1, line2):
+    """Intersection of two lines, each given as two [x, y] points.
+
+    Returns None when the lines are parallel (no unique intersection).
+    """
     xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
     ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
 
@@ -19,107 +16,155 @@ def line_intersection(line1, line2):
 
     div = det(xdiff, ydiff)
     if div == 0:
-        x,y = 69420
-        ##raise Exception('lines do not intersect')
-    if div != 0:
-        d = (det(*line1), det(*line2))
-        x = det(d, xdiff) / div
-        y = det(d, ydiff) / div
-    return x, y
-# finds the coordinates of intersection of the bets
+        return None
+
+    d = (det(*line1), det(*line2))
+    return det(d, xdiff) / div, det(d, ydiff) / div
 
 
+def profit_if(stakes, bet1, bet2, bet3):
+    """Profit under each outcome, given stakes [x, y, z] on outcomes 1, 2, 3.
 
-def points(bet1: float, bet2: float, bet3: float, precision: float):
+    The winning outcome returns its own stake plus `odds * stake`; the other
+    two stakes are lost. Hence `stake * odds - total + stake`.
+    """
+    x, y, z = stakes
+    total = x + y + z
+    return [
+        x * bet1 - total + x,
+        y * bet2 - total + y,
+        z * bet3 - total + z,
+    ]
 
-    # precision is the square root of how many points it checks in a square unit on the graph, so if precision is 2 then it checks every 1/2 unit in the x and y direction so it checks say (0,0) (0,0.5) (0.5,0) (0.5,0.5)
-    pointsX = []
-    # values of x in the profit region, value at the corresponding value in pointsY is the corresponding y value of the point
-    pointsY = []
-    z = 1000
-    # this is the default bet on the 3rd bet, e.g 10 pounds
+
+def is_arbitrage(x, y, z, bet1, bet2, bet3):
+    """True when stakes (x, y, z) profit strictly under every outcome.
+
+    Strict inequalities: a point sitting exactly on a constraint line breaks
+    even, which is not an arbitrage.
+    """
+    return (y < bet1 * x - z) and (y > (z + x) / bet2) and (y < -x + z * bet3)
+
+
+def search_box(bet1, bet2, bet3, z):
+    """Bounding box of the profitable triangle as (min_x, max_x, min_y, max_y).
+
+    Returns None when the three constraints do not bound a region.
+    """
     width = 50
-    # width of the graph
-    testX = width / 2
-    # test x value used to find the intersection points of the 3 bet graphs
-    bet1P1 = [0, -z]
-    bet1P2 = [testX, bet1 * testX - z]
-    bet2P1 = [0, z / bet2]
-    bet2P2 = [testX, (z + testX) / bet2]
-    bet3P1 = [0, z * bet3]
-    bet3P2 = [testX, -testX + z * bet3]
-    # points on each lines used to find points of intersections between the lines
+    test_x = width / 2
 
-    intersection = [line_intersection([bet1P1, bet1P2], [bet2P1, bet2P2]),
-                    line_intersection([bet1P1, bet1P2], [bet3P1, bet3P2]),
-                    line_intersection([bet2P1, bet2P2], [bet3P1, bet3P2])]
-    # points of intersection line_intersection[0] bet 1 bet 2, line_intersection[1] bet1 bet3 and line_intersection[2] bet2 bet3
-    maxX = intersection[0][0]
-    maxY = intersection[0][1]
-    minX = intersection[0][0]
-    minY = intersection[0][1]
+    bet1_line = [[0, -z], [test_x, bet1 * test_x - z]]
+    bet2_line = [[0, z / bet2], [test_x, (z + test_x) / bet2]]
+    bet3_line = [[0, z * bet3], [test_x, -test_x + z * bet3]]
 
-    for i in range(3):
-        if (intersection[i][0] > maxX):
-            maxX = intersection[i][0]
-        if (intersection[i][0] < minX):
-            minX = intersection[i][0]
-        if (intersection[i][1] > maxY):
-            maxY = intersection[i][1]
-        if (intersection[i][1] < minY):
-            minY = intersection[i][1]
-    # finds the maximum and minimum x and y values of the intersection which is used to create the "search zone", where the code below checks to see if that point is profitable or not
-    maxX = math.floor(maxX)
-    maxY = math.floor(maxY)
-    minX = math.ceil(minX)
-    minY = math.ceil(minY)
-    # makes this values integers to reduce confusion with long floats
+    corners = [
+        line_intersection(bet1_line, bet2_line),
+        line_intersection(bet1_line, bet3_line),
+        line_intersection(bet2_line, bet3_line),
+    ]
+    if any(c is None for c in corners):
+        return None
 
-    # checks thru every point in the search zone varying by 1/precision, the larger the precision the more points are checked to see if they are profitable
-    for i in range((maxX - minX) * precision + 1):
-        currentX = minX + ((1 / precision) * i)
-        for j in range((maxY - minY) * precision - 1):
-            currentY = minY + (1 / precision) * j
-            ##print(currentX, " , ", currentY)
-            if (currentY <= (bet1 * currentX) - z and currentY >= (z + currentX) / bet2 and currentY <= -currentX + (z * bet3)):
-                pointsX.append(currentX)
-                pointsY.append(currentY)
-                # adds points to array in order to plot
-    ##print("Max X ", maxX)
-    ##print("Min X ", minX)
-    ##print("Max Y ", maxY)
-    ##print("Min Y ", minY)
-    ##print(pointsX)
-    ##print(pointsY)
-    x = np.arange(0, width, 1 / precision)
-    plt.scatter(pointsX, pointsY)
-    plt.plot(x, bet1 * x - z, color='red', label="bet1")
-    # bounded below
-    plt.plot(x, (z + x) / bet2, color='green', label="bet2")
-    # bounded above
-    plt.plot(x, -x + z * bet3, color='royalblue', label="bet3")
-    # bounded below
-    plt.vlines(minX, -width, width, color='black')
-    plt.vlines(maxX, -width, width, color='black')
-    plt.hlines(minY, -width, width, color='black')
-    plt.hlines(maxY, -width, width, color='black')
-    plt.legend()
-    pl.xlim([0, maxX+10])
-    pl.ylim([0, maxY+10])
-    plt.fill_between(x, bet1 * x - z, alpha=.4, color='red')
-    plt.fill_between(x, (10 + x) / bet2, 1000, alpha=.4, color='yellow')
-    plt.fill_between(-x + 10 * bet3, x, step="pre", alpha=.4, color='royalblue')
-    plt.fill()
-    ##plt.show()
+    xs = [c[0] for c in corners]
+    ys = [c[1] for c in corners]
 
-    profitableBets = []
-    for i in range(len(pointsX)):
-        profit = [pointsX[i],pointsY[i],z]
-        profitableBets.append(profit)
+    # Stakes cannot be negative, so clamp the lower bounds at zero.
+    min_x = max(0, math.ceil(min(xs)))
+    max_x = math.floor(max(xs))
+    min_y = max(0, math.ceil(min(ys)))
+    max_y = math.floor(max(ys))
+
+    if max_x < min_x or max_y < min_y:
+        return None
+    return min_x, max_x, min_y, max_y
 
 
-    return profitableBets
-    print(" ")
-##
-#test = points(5,2,3,1)
-#print(test)
+def iter_points(bet1: float, bet2: float, bet3: float, precision: int = 1, z: float = 1000.0):
+    """Yield stake combinations that profit whichever way the match goes.
+
+    Stakes on outcomes 1 and 2 are the coordinates x and y; the stake on
+    outcome 3 is fixed at `z`. Each outcome gives one inequality:
+
+        outcome 1 wins:  y < bet1 * x - z
+        outcome 2 wins:  y > (z + x) / bet2
+        outcome 3 wins:  y < z * bet3 - x
+
+    The three lines bound a triangle; every point inside it is an arbitrage.
+    `precision` is the number of grid steps per unit, so 2 checks every 0.5.
+    """
+    if precision < 1:
+        raise ValueError("precision must be a positive integer")
+
+    box = search_box(bet1, bet2, bet3, z)
+    if box is None:
+        return
+    min_x, max_x, min_y, max_y = box
+
+    step = 1 / precision
+    for i in range(int((max_x - min_x) * precision) + 1):
+        x = min_x + step * i
+        for j in range(int((max_y - min_y) * precision) + 1):
+            y = min_y + step * j
+            if is_arbitrage(x, y, z, bet1, bet2, bet3):
+                yield [x, y, z]
+
+
+def points(bet1: float, bet2: float, bet3: float, precision: int = 1, z: float = 1000.0):
+    """List form of `iter_points`, kept for plotting and ad-hoc inspection."""
+    return list(iter_points(bet1, bet2, bet3, precision, z))
+
+
+def best_stakes(bet1: float, bet2: float, bet3: float, precision: int = 1, z: float = 1000.0):
+    """Stakes with the highest guaranteed return per pound staked.
+
+    In a genuine arbitrage every outcome profits, so the meaningful objective
+    is the worst case: maximise the smallest of the three profits, normalised
+    by the total staked. Returns (stakes, ratio), or None when no arbitrage
+    exists.
+
+    Iterates rather than building a list, because a wide profitable region can
+    hold millions of combinations.
+    """
+    best = None
+    best_ratio = 0.0
+
+    for stakes in iter_points(bet1, bet2, bet3, precision, z):
+        ratio = min(profit_if(stakes, bet1, bet2, bet3)) / sum(stakes)
+        if ratio > best_ratio:
+            best_ratio = ratio
+            best = stakes
+
+    return None if best is None else (best, best_ratio)
+
+
+def implied_probability(odds: float) -> float:
+    """Implied probability from fractional odds expressed as a ratio.
+
+    Note this ignores the bookmaker's overround, so the three probabilities
+    for a match will not sum to 1.
+    """
+    return 1 / (odds + 1)
+
+
+def plot_region(bet1: float, bet2: float, bet3: float, precision: int = 1, z: float = 1000.0):
+    """Draw the three constraint lines and the profitable region.
+
+    Separate from the search so that scanning matches does not build a figure
+    for every one of them.
+    """
+    import matplotlib.pyplot as plt
+
+    profitable = points(bet1, bet2, bet3, precision, z)
+    x = np.arange(0, 50, 1 / precision)
+
+    fig, ax = plt.subplots()
+    if profitable:
+        ax.scatter([p[0] for p in profitable], [p[1] for p in profitable])
+    ax.plot(x, bet1 * x - z, color='red', label="bet1")
+    ax.plot(x, (z + x) / bet2, color='green', label="bet2")
+    ax.plot(x, -x + z * bet3, color='royalblue', label="bet3")
+    ax.fill_between(x, bet1 * x - z, alpha=.4, color='red')
+    ax.fill_between(x, (z + x) / bet2, z * bet3, alpha=.4, color='yellow')
+    ax.legend()
+    return fig, ax

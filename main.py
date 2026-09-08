@@ -1,96 +1,90 @@
+# Takes the odds from the website and reports back the profitable matches and
+# the stakes to place. Automation of the actual bet placement is still to come.
 #
-# Got to think about bes tway to automate getting bets for sports, and the leagues in those sports
-#  E.g Premier league in football
-# i reckon at the moment we just focus on getting a program where it takes the bets from the website and reports back the profitable matches and the possible bets
-## and worry about the automation later
-from tabulate import tabulate
-from utils import get_bets
-from core import points
+# Main program should eventually loop so it can re-check matches, since odds
+# move and a match can turn profitable later. Placing bets, moving winnings
+# back to PayPal and topping up bookmaker balances all remain unimplemented.
+
 import pandas as pd
+from tabulate import tabulate
+
+from core import best_stakes, implied_probability, profit_if
+from utils import get_bets
+
+COMPETITIONS = [
+    'premier-league',
+    'uefa-champions-league',
+    'world-cup',
+    'championship',
+    'la-liga',
+    'uefa-europa-league',
+    'euro-2024',
+    'uefa-nations-league',
+    'campeonato-brasileiro-serie-a',
+    '',
+]
+
+COLUMNS = [
+    "Team 1", "Team 2",
+    "Win 1 odds", "Draw odds", "Win 2 odds",
+    "Best bets", "Winnings", "Probabilities", "Sum of P",
+    "Cost", "Expected returns", "Profit per pound betted",
+]
 
 
-##############################################
-#
-# Main program should loop infinitely in order
-# to check and make the bets, see nas bets can
-# be updated.
-#
-# Bets may be updated from non-profitable to
-# profitable.
-#
-# Program also needs to take winnings, move it
-# back to PayPal, and distribute where
-# necessary in case of low balance on other
-# bookies site.
-#
-##############################################
+def find_arbitrage(match, precision=1):
+    """Return a results row for a match, or None when it is not profitable."""
+    home_name, away_name, bet1, bet2, bet3 = match
+
+    result = best_stakes(bet1, bet2, bet3, precision=precision)
+    if result is None:
+        return None
+    stakes, ratio = result
+
+    wins = profit_if(stakes, bet1, bet2, bet3)
+    probabilities = [implied_probability(b) for b in (bet1, bet2, bet3)]
+    expected_returns = sum(w * p for w, p in zip(wins, probabilities))
+
+    return [
+        home_name, away_name, bet1, bet2, bet3,
+        stakes,
+        [round(w, 4) for w in wins],
+        [round(p, 4) for p in probabilities],
+        round(sum(probabilities), 4),
+        sum(stakes),
+        expected_returns,
+        ratio,
+    ]
 
 
-def main():
-    profitableBets = []
-    competition = ['premier-league','uefa-champions-league','world-cup','championship','la-liga','uefa-europa-league','euro-2024','uefa-nations-league','campeonato-brasileiro-serie-a','']
+def main(competitions=COMPETITIONS, precision=1):
+    profitable_bets = []
 
-    for i in range(len(competition)):
+    for competition in competitions:
+        print(" ---------- { " + competition + " } ----------")
 
-        print(" ---------- { " + competition[i] + " } ----------")
+        try:
+            matches = get_bets(tournament=competition)
+        except Exception as exc:
+            # One dead competition page should not abort the whole run.
+            print("could not fetch " + competition + ": " + str(exc))
+            continue
 
-        tournaments = get_bets(tournament=competition[i])
-        print(tournaments)
+        for match in matches:
+            row = find_arbitrage(match, precision=precision)
+            print(match)
+            if row is not None:
+                profitable_bets.append(row)
+                print(row)
 
-        for match in tournaments:
-            home_name = match[0]
-            away_name = match[1]
-
-            bet1 = match[2]
-            bet2 = match[3]
-            bet3 = match[4]
-
-            profitable_bets = points(bet1, bet2, bet3, precision=1)
-            ##print(profitable_bets)
-            bet1Win = 0
-            bet2Win = 0
-            bet3Win = 0
-            # If list is not empty, profitable bets exist
-            if profitable_bets:
-                print(match)
-                # Find bet in bookies and make bet
-                highestTotal = 0
-                bestCombo = []
-                wins = []
-                for bets in profitable_bets:
-                    p1 = 1 / (bet1 + 1)
-                    p2 = 1 / (bet2 + 1)
-                    p3 = 1 / (bet3 + 1)
-
-                    if(highestTotal<bets[0]*bet1*p1 + bets[1]*bet2*p2 + bets[2]*bet3*p3 ):
-                        highestTotal = bets[0]*bet1 + bets[1]*bet2 + bets[2]*bet3 - (2*sum(bets))
-
-                        bet1Win = bets[0] * bet1 - sum(bets) + bets[0]
-                        bet2Win = bets[1] * bet2 - sum(bets) + bets[1]
-                        bet3Win = bets[2] * bet3 - sum(bets)+ bets[2]
-
-                        probabilyBet1 = 1 / (bet1 + 1)
-                        probabilyBet2 = 1 / (bet2 + 1)
-                        probabilyBet3 = 1 / (bet3 + 1)
-                        expectedReturns =  bet1Win*probabilyBet1 + bet2Win*probabilyBet2 + bet3Win*probabilyBet3
-                        bestCombo = bets
-                        probabilties = [round(probabilyBet1,4), round(probabilyBet2,4),round(probabilyBet3,4)]
-                        wins = [ round(bet1Win,4),round(bet2Win,4),round(bet3Win,4),]
-                profitableBets.append( [match[0], match[1], match[2], match[3], match[4], bestCombo, wins,probabilties,sum(probabilties),sum(bestCombo) ,  expectedReturns, expectedReturns/sum(bets)] )
-                print(match[0], match[1], match[2], match[3], match[4], bestCombo,sum(bets) , expectedReturns, expectedReturns/sum(bets) )
-            else:
-                print(match)
-    return profitableBets
+    return profitable_bets
 
 
 if __name__ == "__main__":
     data = main()
-    print(data)
-    col_names = ["Team 1 ", "Team 2 ","Win 1 odds", "Draw odds ", "Win 2 odds ", "Best bets ","Winings","Probabilties","Sum of P","Cost","Expected returns","Profit per Pound betted"]
-    data = pd.DataFrame(data)
-    if(data.empty == False):
-        data.sort_values(7)
-        print(tabulate(data, headers=col_names, tablefmt="fancy_grid"))
-
-
-
+    if data:
+        frame = pd.DataFrame(data, columns=COLUMNS)
+        frame = frame.sort_values("Profit per pound betted", ascending=False)
+        print(tabulate(frame, headers=COLUMNS, tablefmt="fancy_grid"))
+    else:
+        print("No profitable matches found.")
