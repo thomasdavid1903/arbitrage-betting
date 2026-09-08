@@ -169,13 +169,17 @@ def _outcome_price(market, outcome_id):
     return None if price is None else float(price)
 
 
-def collect_prices(fixture, into=None):
+def collect_prices(fixture, into=None, sink=None):
     """Best 1X2 decimal price per outcome across the fixture's bookmakers.
 
     Pass the previous result as `into` to merge one bookmaker's response into
     the running best, which is how prices from separate requests are combined.
     Returns {"prices": [h, d, a], "books": [h, d, a]} with None for outcomes
     nothing has priced yet.
+
+    Pass a list as `sink` to also collect every individual price seen, with
+    the bookmaker's own changedAt timestamp -- that is what makes it possible
+    to measure how fast prices move without polling repeatedly.
     """
     if into is None:
         into = {"prices": [None, None, None], "books": [None, None, None]}
@@ -190,6 +194,22 @@ def collect_prices(fixture, into=None):
 
         for i, outcome_id in enumerate((OUTCOME_HOME, OUTCOME_DRAW, OUTCOME_AWAY)):
             price = _outcome_price(market, outcome_id)
+
+            if sink is not None:
+                player = (market.get("outcomes", {}).get(outcome_id, {})
+                          .get("players", {}).get("0")) or {}
+                if player.get("price") is not None:
+                    sink.append({
+                        "fixtureId": fixture.get("fixtureId"),
+                        "startTime": fixture.get("startTime"),
+                        "tournamentId": fixture.get("tournamentId"),
+                        "bookmaker": book_name,
+                        "outcome": ("home", "draw", "away")[i],
+                        "price": player.get("price"),
+                        "changedAt": player.get("changedAt"),
+                        "active": player.get("active", True),
+                    })
+
             if price is not None and (into["prices"][i] is None or price > into["prices"][i]):
                 into["prices"][i] = price
                 into["books"][i] = book_name
@@ -197,7 +217,8 @@ def collect_prices(fixture, into=None):
     return into
 
 
-def get_bets(tournament_ids, bookmakers, api_key=None, verbose=False, names=None):
+def get_bets(tournament_ids, bookmakers, api_key=None, verbose=False, names=None,
+             sink=None):
     """Match rows for the given tournaments, shaped like the scraper's output.
 
     The API accepts exactly one bookmaker per request, so this makes one call
@@ -238,7 +259,7 @@ def get_bets(tournament_ids, bookmakers, api_key=None, verbose=False, names=None
             if not fixture.get("hasOdds"):
                 continue
             key = fixture["fixtureId"]
-            merged[key] = collect_prices(fixture, merged.get(key))
+            merged[key] = collect_prices(fixture, merged.get(key), sink=sink)
             meta.setdefault(key, fixture)
             priced += 1
 

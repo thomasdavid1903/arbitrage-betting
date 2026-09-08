@@ -12,6 +12,7 @@ import time
 from flask import Flask, jsonify, render_template, request
 
 import oddspapi
+import storage
 from core import best_stakes, overround, profit_if
 from main import BOOKMAKERS, COMPETITIONS, requests_needed
 
@@ -27,9 +28,19 @@ def scan(api_key, competitions=COMPETITIONS, bookmakers=BOOKMAKERS, precision=1)
 
     found, missing = oddspapi.find_tournament_ids(competitions, api_key=api_key)
     names = oddspapi.get_participants(api_key=api_key)
+
+    # Every individual price is kept, not just the best, so that price
+    # movement can be measured later without spending more requests.
+    observations = []
     matches = oddspapi.get_bets(
-        list(found.values()), bookmakers, api_key=api_key, names=names
+        list(found.values()), bookmakers, api_key=api_key, names=names,
+        sink=observations,
     )
+
+    teams = {m.fixture_id: (m.home, m.away) for m in matches}
+    for row in observations:
+        home, away = teams.get(row["fixtureId"], ("", ""))
+        row["home"], row["away"] = home, away
 
     rows = []
     for m in matches:
@@ -69,6 +80,7 @@ def scan(api_key, competitions=COMPETITIONS, bookmakers=BOOKMAKERS, precision=1)
                         for (c, s), i in found.items()],
         "missing": ["%s/%s" % key for key in missing],
         "matches": rows,
+        "observations": observations,
     }
 
 
@@ -94,6 +106,22 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/history")
+def history():
+    return render_template("history.html")
+
+
+@app.route("/api/history")
+def api_history():
+    """Everything the analytics page needs, all from disk."""
+    return jsonify({
+        "stats": storage.stats(),
+        "churn": storage.churn_summary(),
+        "overround": storage.overround_history(),
+        "tracks": storage.fixture_tracks(),
+    })
+
+
 @app.route("/api/cached")
 def api_cached():
     """The last scan, so a page reload costs nothing."""
@@ -116,6 +144,8 @@ def api_scan():
     except oddspapi.OddsPapiError as exc:
         return jsonify({"error": str(exc)}), 502
 
+    observations = payload.pop("observations", [])
+    storage.record_scan(payload, observations)
     save_scan(payload)
     payload["fromCache"] = False
     return jsonify(payload)

@@ -13,6 +13,7 @@
     <div>
       <h1>Arbitrage <span class="accent">Scanner</span></h1>
       <p class="tagline">1X2 cross-book pricing &middot; OddsPapi feed &middot; overround &lt; 1.0 = risk-free</p>
+      <nav><a href="/" class="active">Scanner</a><a href="/history">Price movement</a></nav>
     </div>
     <div class="controls">
       <input type="password" id="key" placeholder="ODDSPAPI_KEY" autocomplete="off" spellcheck="false">
@@ -74,6 +75,7 @@
 </div>
 
 <div id="tooltip"></div>
+<script src="{{ url_for('static', filename='chart-lib.js') }}"></script>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

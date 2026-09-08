@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Price Movement</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Price <span class="accent">Movement</span></h1>
+      <p class="tagline">How fast odds change &middot; read from stored scans &middot; no API calls</p>
+      <nav><a href="/">Scanner</a><a href="/history" class="active">Price movement</a></nav>
+    </div>
+  </header>
+
+  <div class="status" id="status"><span class="dot"></span><span id="status-text">Loading stored scans&hellip;</span></div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="grid">
+
+    <section class="panel wide">
+      <h2>How long a price stands before it moves</h2>
+      <p class="desc">
+        Each price carries the bookmaker's own <code>changedAt</code>, so one scan already records how long that
+        price had been standing. Bars span the 25th to 75th percentile; the notch is the median.
+        This is the clock your script has to beat.
+      </p>
+      <div class="legend" id="legend-books"></div>
+      <div class="chart-wrap"><svg id="chart-books"></svg></div>
+      <p class="footnote" id="note-books"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Movement by time to kick-off</h2>
+      <p class="desc">
+        Pooled across every bookmaker, so the slow books dominate these medians &mdash; the sharp book alone is far
+        quicker. Fixtures days out barely move; the near ones do. Sample sizes inside 24h are small, so read the
+        direction rather than the exact figure.
+      </p>
+      <div class="chart-wrap"><svg id="chart-kickoff"></svg></div>
+    </section>
+
+    <section class="panel">
+      <h2>Age distribution</h2>
+      <p class="desc">Every observed price, log-binned. The left tail is the live market; the right is fixtures nobody has repriced yet.</p>
+      <div class="chart-wrap"><svg id="chart-ages"></svg></div>
+    </section>
+
+    <section class="panel wide">
+      <h2>Overround across scans</h2>
+      <p class="desc">Best and median overround each time you scanned. With one or two scans on file this is a couple of points; it becomes the trend line as scans accumulate.</p>
+      <div class="legend" id="legend-trend"></div>
+      <div class="chart-wrap"><svg id="chart-trend"></svg></div>
+    </section>
+
+    <section class="panel wide">
+      <h2>Stored data</h2>
+      <p class="desc">
+        Scans append to <code>data/scans.jsonl</code> (one JSON object per scan) and every individual price to
+        <code>data/prices.csv</code> (long format, one row per price per book per scan). Neither file is ever
+        rewritten, so this page and any analysis you run later read from disk rather than the API.
+      </p>
+      <div class="table-wrap"><table id="table">
+        <thead><tr>
+          <th>Scanned</th><th class="num">Matches</th><th class="num">Best overround</th>
+          <th class="num">Median</th><th class="num">Arbs</th><th class="num">Within 1%</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </section>
+
+  </div>
+</div>
+
+<div id="tooltip"></div>
+<script src="{{ url_for('static', filename='chart-lib.js') }}"></script>
+<script src="{{ url_for('static', filename='history.js') }}"></script>
+</body>
+</html>

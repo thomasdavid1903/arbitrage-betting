@@ -84,6 +84,24 @@ h1 .accent { color: var(--series-1); text-shadow: var(--glow); }
 
 .tagline { margin: 5px 0 0; color: var(--text-muted); font-size: 11.5px; letter-spacing: .08em; }
 
+nav { display: flex; gap: 6px; margin-top: 12px; }
+nav a {
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 11px;
+  letter-spacing: .1em;
+  padding: 5px 11px;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color .16s, border-color .16s;
+}
+nav a:hover { color: var(--text-primary); border-color: var(--line); }
+nav a.active { color: var(--series-1); border-color: var(--series-1); }
+
+.footnote { color: var(--text-muted); font-size: 10.5px; line-height: 1.6; margin: 10px 0 2px; }
+code { background: var(--surface-2); border-radius: 3px; color: var(--text-secondary); padding: 1px 5px; font-size: 11px; }
+
 .controls { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 
 input[type="password"], input[type="text"] {

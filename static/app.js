@@ -1,85 +1,11 @@
 'use strict';
 
-const SVG = 'http://www.w3.org/2000/svg';
-
-const CSS = getComputedStyle(document.documentElement);
-const C = name => CSS.getPropertyValue(name).trim();
-
-const COLOR = {
-  s1: C('--series-1'), s2: C('--series-2'), s3: C('--series-3'),
-  s4: C('--series-4'), s5: C('--series-5'),
-  good: C('--good'), warning: C('--warning'),
-  line: C('--line'), lineSoft: C('--line-soft'),
-  text: C('--text-primary'), sub: C('--text-secondary'), muted: C('--text-muted'),
-  surface: C('--surface-1')
-};
+/* Scanner page. Shared primitives (el, hit, legend, tiles, COLOR) come from
+   chart-lib.js, which is loaded first. */
 
 let STATE = { matches: [], selected: 0, meta: null };
 
-/* ---------------- small helpers ---------------- */
-
-function el(tag, attrs, parent) {
-  const node = document.createElementNS(SVG, tag);
-  for (const k in (attrs || {})) node.setAttribute(k, attrs[k]);
-  if (parent) parent.appendChild(node);
-  return node;
-}
-
-function clear(svg) { while (svg.firstChild) svg.removeChild(svg.firstChild); }
-
-const tooltip = document.getElementById('tooltip');
-
-function showTip(evt, title, rows) {
-  tooltip.innerHTML = '<div class="t-title">' + title + '</div>' +
-    rows.map(r => '<div class="t-row"><span>' + r[0] + '</span><span>' + r[1] + '</span></div>').join('');
-  tooltip.classList.add('show');
-  moveTip(evt);
-}
-
-function moveTip(evt) {
-  const pad = 14;
-  let x = evt.clientX + pad, y = evt.clientY + pad;
-  const box = tooltip.getBoundingClientRect();
-  if (x + box.width > innerWidth - 8) x = evt.clientX - box.width - pad;
-  if (y + box.height > innerHeight - 8) y = evt.clientY - box.height - pad;
-  tooltip.style.left = x + 'px';
-  tooltip.style.top = y + 'px';
-}
-
-function hideTip() { tooltip.classList.remove('show'); }
-
-// Hit areas are deliberately bigger than the marks they serve.
-function hit(parent, attrs, title, rows, onClick) {
-  attrs.fill = 'transparent';
-  const zone = el('rect', attrs, parent);
-  zone.addEventListener('mouseenter', e => showTip(e, title, rows));
-  zone.addEventListener('mousemove', moveTip);
-  zone.addEventListener('mouseleave', hideTip);
-  if (onClick) {
-    zone.style.cursor = 'pointer';
-    zone.addEventListener('click', onClick);
-  }
-  return zone;
-}
-
-function legend(id, items) {
-  document.getElementById(id).innerHTML = items.map(i =>
-    '<span class="item"><span class="swatch" style="background:' + i[1] + '"></span>' + i[0] + '</span>'
-  ).join('');
-}
-
-const fmtOdds = v => v.toFixed(2);
-
-const fmtTime = iso => {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) + ' ' +
-         d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-};
-
 const label = m => m.home + ' v ' + m.away;
-
-const short = (s, n) => s.length > n ? s.slice(0, n - 1) + '…' : s;
 
 /* ---------------- chart 1: closest to arbitrage ---------------- */
 
@@ -414,20 +340,13 @@ function drawTiles(data) {
   const near = matches.filter(m => m.overround < 1.01).length;
   const best = matches.length ? matches[0].overround : null;
 
-  const tiles = [
+  tiles('tiles', [
     { label: 'Matches priced', value: matches.length, sub: (data.tournaments || []).length + ' competitions' },
     { label: 'Arbitrages', value: arbs.length, sub: arbs.length ? 'place all three legs' : 'none this scan', good: arbs.length > 0 },
     { label: 'Best overround', value: best === null ? '—' : best.toFixed(4), sub: best === null ? '' : ((best - 1) * 100).toFixed(2) + '% against you', good: best !== null && best < 1 },
     { label: 'Within 1%', value: near, sub: 'candidates to watch' },
     { label: 'Requests used', value: data.requests, sub: data.fromCache ? 'cached — no quota spent' : data.elapsed + 's elapsed' }
-  ];
-
-  document.getElementById('tiles').innerHTML = tiles.map(t =>
-    '<div class="tile' + (t.good ? ' good' : '') + '">' +
-      '<div class="label">' + t.label + '</div>' +
-      '<div class="value">' + t.value + '</div>' +
-      '<div class="sub">' + (t.sub || '') + '</div>' +
-    '</div>').join('');
+  ]);
 }
 
 function select(i) {
