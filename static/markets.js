@@ -344,16 +344,27 @@ async function loadPersistence() {
   }
 }
 
+function currentSport() {
+  const picked = document.querySelector('input[name="sport"]:checked');
+  return picked ? picked.value : 'football';
+}
+
 async function load() {
+  const sport = currentSport();
   try {
-    const res = await fetch('/api/cached');
+    const res = await fetch(sport === 'tennis' ? '/api/cached-tennis' : '/api/cached');
     const data = await res.json();
     if (data.empty || !data.marketMargins) {
-      setStatus('No scan with market data yet — run a scan from the scanner page.', '');
+      setStatus('No ' + sport + ' scan stored yet — use "Scan this sport".', '');
+      ['chart-types', 'chart-dist', 'chart-closest'].forEach(id => clear(document.getElementById(id)));
+      document.getElementById('arbs').innerHTML = '';
+      document.getElementById('tiles').innerHTML = '';
       return;
     }
     render(data);
-    loadPersistence();
+    if (sport === 'football') loadPersistence();
+    else document.getElementById('persistence').innerHTML =
+      '<p class="empty">Persistence is tracked for football scans.</p>';
     setStatus('Scan from ' + fmtTime(new Date(data.scannedAt * 1000).toISOString()) +
       ' · ' + data.marketCoverage.judged.toLocaleString() + ' markets judged · read from cache', '');
   } catch (err) {
@@ -365,6 +376,24 @@ let resizeTimer = null;
 addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => { if (DATA) render(DATA); }, 150);
+});
+
+document.querySelectorAll('input[name="sport"]').forEach(el =>
+  el.addEventListener('change', load));
+
+document.getElementById('scan-sport').addEventListener('click', async () => {
+  const sport = currentSport();
+  // This page has no key field; the server falls back to ODDSPAPI_KEY.
+  const key = null;
+  setStatus('Scanning ' + sport + '…', 'live');
+  const res = await fetch(sport === 'tennis' ? '/api/scan-tennis' : '/api/scan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ apiKey: key || undefined })
+  });
+  const data = await res.json();
+  if (data.error) { setStatus(data.error, 'error'); return; }
+  load();
 });
 
 document.getElementById('only-standard').addEventListener('change', () => {

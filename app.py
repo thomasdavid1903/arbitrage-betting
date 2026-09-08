@@ -23,6 +23,68 @@ app = Flask(__name__)
 
 SCAN_CACHE = os.path.join(oddspapi.CACHE_DIR, "scan.json")
 
+# Tennis has two outcomes and no draw, so there is no third leg for the feed
+# to mismap and no "equal" outcome to swap -- the two failure modes behind
+# every false positive so far. Its competitions are named per tour.
+TENNIS_SPORT_ID = 12
+TENNIS_COMPETITIONS = [
+    ("atp", "us-open-men-singles"),
+    ("wta", "us-open-women-singles"),
+    ("challenger", "atp-challenger-manacor-mallorca-spain-men-singles"),
+    ("challenger", "atp-challenger-plovdiv-3-bulgaria-men-singles"),
+]
+
+TENNIS_CACHE = os.path.join(oddspapi.CACHE_DIR, "scan-tennis.json")
+TENNIS_RAW = "last-markets-tennis.json"
+
+
+def scan_tennis(api_key, competitions=TENNIS_COMPETITIONS, bookmakers=None):
+    """Scan tennis. Same machinery, no sport-specific assumptions."""
+    started = time.time()
+    oddspapi.request_count[0] = 0
+    bookmakers = bookmakers or BOOKMAKERS
+
+    found, missing = oddspapi.find_tournament_ids(
+        competitions, sport_id=TENNIS_SPORT_ID, api_key=api_key)
+    if not found:
+        return {"error": "no tennis tournaments matched"}
+
+    names = oddspapi.get_participants(sport_id=TENNIS_SPORT_ID, api_key=api_key)
+    matches, market_sink = oddspapi.collect_sport(
+        list(found.values()), bookmakers, api_key=api_key, verbose=True,
+        names=names)
+
+    try:
+        os.makedirs(oddspapi.CACHE_DIR, exist_ok=True)
+        with open(os.path.join(oddspapi.CACHE_DIR, TENNIS_RAW), "w",
+                  encoding="utf-8") as handle:
+            json.dump(market_sink, handle)
+    except (OSError, TypeError):
+        pass
+
+    index = oddspapi.market_index(oddspapi.get_markets(api_key=api_key))
+    operators = oddspapi.clone_groups(oddspapi.get_bookmakers(api_key=api_key))
+
+    rows = market_scan.scan_markets(market_sink, matches, index,
+                                    operators=operators)
+    return {
+        "sport": "tennis",
+        "scannedAt": started,
+        "elapsed": round(time.time() - started, 1),
+        "requests": oddspapi.request_count[0],
+        "bookmakers": bookmakers,
+        "tournaments": [{"category": c, "slug": s, "id": i}
+                        for (c, s), i in found.items()],
+        "missing": ["%s/%s" % key for key in missing],
+        "fixtures": len(matches),
+        "matches": [],
+        "markets": rows,
+        "marketSummary": market_scan.summarise(rows),
+        "marketCoverage": market_scan.coverage(market_sink, index),
+        "marketMargins": market_scan.margins(market_sink, matches, index),
+        "detector": market_scan.DETECTOR_VERSION,
+    }
+
 
 def scan(api_key, competitions=COMPETITIONS, bookmakers=BOOKMAKERS, precision=1):
     """Fetch odds, evaluate every match and return a JSON-ready payload."""
@@ -232,6 +294,38 @@ def api_schedule():
     )
     status = 200 if ok else 400
     return jsonify({"ok": ok, "message": message, "state": SCHEDULER.state}), status
+
+
+@app.route("/api/scan-tennis", methods=["POST"])
+def api_scan_tennis():
+    body = request.get_json(silent=True) or {}
+    api_key = (body.get("apiKey") or os.environ.get("ODDSPAPI_KEY") or "").strip()
+    if not api_key:
+        return jsonify({"error": "no API key supplied"}), 400
+    try:
+        payload = scan_tennis(api_key)
+    except oddspapi.OddsPapiError as exc:
+        return jsonify({"error": str(exc)}), 502
+    if payload.get("error"):
+        return jsonify(payload), 400
+
+    try:
+        with open(TENNIS_CACHE, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle)
+    except OSError:
+        pass
+    return jsonify(payload)
+
+
+@app.route("/api/cached-tennis")
+def api_cached_tennis():
+    try:
+        with open(TENNIS_CACHE, encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (OSError, ValueError):
+        return jsonify({"empty": True})
+    payload["fromCache"] = True
+    return jsonify(payload)
 
 
 @app.route("/api/persistence")

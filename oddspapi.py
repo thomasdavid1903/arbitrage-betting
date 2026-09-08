@@ -353,6 +353,68 @@ def collect_prices(fixture, into=None, sink=None):
     return into
 
 
+def fetch_fixtures(tournament_ids, bookmakers, api_key=None, verbose=False):
+    """Yield (bookmaker, fixtures) for each book, chunked to the API's limits.
+
+    The request loop is the same whatever the sport, so both the football 1X2
+    pass and the generic all-markets scan go through here rather than each
+    keeping their own copy.
+    """
+    if isinstance(tournament_ids, (int, str)):
+        tournament_ids = [tournament_ids]
+    if isinstance(bookmakers, str):
+        bookmakers = [bookmakers]
+
+    chunks = [
+        tournament_ids[i:i + MAX_TOURNAMENTS_PER_REQUEST]
+        for i in range(0, len(tournament_ids), MAX_TOURNAMENTS_PER_REQUEST)
+    ]
+
+    for book in bookmakers:
+        fixtures = []
+        for chunk in chunks:
+            try:
+                fixtures += _get(
+                    "/v4/odds-by-tournaments", api_key=api_key, bookmaker=book,
+                    tournamentIds=",".join(str(t) for t in chunk),
+                    oddsFormat="decimal",
+                )
+            except OddsPapiError as exc:
+                # One failed chunk should not lose the rest of the prices.
+                print("  %s: %s" % (book, exc))
+        if verbose:
+            print("  %-14s %d fixtures" % (book, len(fixtures)))
+        yield book, fixtures
+
+
+def collect_sport(tournament_ids, bookmakers, api_key=None, verbose=False,
+                  names=None, market_sink=None):
+    """Fixture metadata plus every market, for any sport.
+
+    Tennis, unlike football, has no draw, so there is no three-way market to
+    reduce to. Nothing here assumes a shape: markets are collected as they
+    come and judged against their own definitions.
+    """
+    if market_sink is None:
+        market_sink = {}
+    meta = {}
+
+    for _book, fixtures in fetch_fixtures(tournament_ids, bookmakers, api_key, verbose):
+        for fixture in fixtures:
+            if not fixture.get("hasOdds"):
+                continue
+            key = fixture["fixtureId"]
+            market_sink[key] = collect_all_markets(fixture, market_sink.get(key))
+            meta.setdefault(key, fixture)
+
+    matches = []
+    for key, fixture in meta.items():
+        home, away = _team_names(fixture, names)
+        matches.append(Match(home, away, None, None, None, [], key,
+                             fixture.get("startTime")))
+    return matches, market_sink
+
+
 def get_bets(tournament_ids, bookmakers, api_key=None, verbose=False, names=None,
              sink=None, market_sink=None):
     """Match rows for the given tournaments, shaped like the scraper's output.
