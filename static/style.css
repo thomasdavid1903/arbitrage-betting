@@ -300,3 +300,13 @@ td.num { text-align: right; }
 .arb-legs th { border-bottom: 1px solid var(--line-soft); }
 .arb-legs td { border-bottom: none; padding: 4px 11px; }
 .arb-foot { color: var(--text-muted); font-size: 10.5px; margin-top: 8px; }
+
+.book-link {
+  color: var(--series-1);
+  font-size: 10.5px;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color .16s;
+}
+.book-link:hover { border-bottom-color: var(--series-1); }
+.book-link .book { font-size: 9.5px; }

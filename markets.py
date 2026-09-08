@@ -121,6 +121,8 @@ def evaluate_fixture(fixture_markets, index, bankroll=None, min_ratio=0.0):
                 "book": data["book"],
                 "limit": data.get("limit"),
                 "changedAt": data.get("changedAt"),
+                "link": data.get("link"),
+                "deepLink": data.get("deepLink", False),
                 "stake": round(stake, 2),
             } for (oid, data), stake in zip(ordered, result["stakes"])],
             "impliedSum": round(result["impliedSum"], 5),

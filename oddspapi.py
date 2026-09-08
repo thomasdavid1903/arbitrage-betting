@@ -162,6 +162,10 @@ def collect_all_markets(fixture, into=None):
         if not book.get("bookmakerIsActive", True):
             continue
 
+        # Some books give a per-selection betslip link, others only a link to
+        # the fixture. Either is enough to go and check the price by hand.
+        fixture_path = book.get("fixturePath")
+
         for market_id, market in (book.get("markets") or {}).items():
             if market.get("marketActive") is False:
                 continue
@@ -186,8 +190,22 @@ def collect_all_markets(fixture, into=None):
                     "changedAt": player.get("changedAt"),
                     "mainLine": player.get("mainLine"),
                     "sourceMarket": _source_market(source),
+                    "link": _safe_link(player.get("betslip")) or _safe_link(fixture_path),
+                    "deepLink": bool(_safe_link(player.get("betslip"))),
                 }
     return into
+
+
+def _safe_link(url):
+    """Only pass through ordinary web links.
+
+    These URLs come from the feed, so anything that is not plain http(s) is
+    dropped rather than handed to a browser.
+    """
+    if not url:
+        return None
+    text = str(url).strip()
+    return text if text.startswith(("https://", "http://")) else None
 
 
 def _source_market(source):

@@ -6,6 +6,19 @@ let DATA = null;
 
 const pct = v => (v * 100).toFixed(2) + '%';
 
+// Links come from the feed, so escape before putting them in an attribute.
+const esc = s => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/\"/g, '&quot;').replace(/'/g, '&#39;');
+
+function bookCell(o) {
+  if (!o.link) return '<span class="book">' + esc(o.book) + '</span>';
+  // A deep link opens the bet already selected; the fallback only reaches
+  // the fixture, so it is marked to set expectations.
+  return '<a class="book-link" href="' + esc(o.link) + '" target="_blank" rel="noopener noreferrer">' +
+    esc(o.book) + (o.deepLink ? ' ↗' : ' <span class="book">(fixture) ↗</span>') + '</a>';
+}
+
 function median(values) {
   const s = values.slice().sort((a, b) => a - b);
   return s[Math.floor(s.length / 2)];
@@ -197,11 +210,12 @@ function drawArbs(rows) {
       '<tr>' +
         '<td>' + o.name + '</td>' +
         '<td class="num">' + o.price.toFixed(2) + '</td>' +
-        '<td class="book">' + o.book + '</td>' +
+        '<td>' + bookCell(o) + '</td>' +
         '<td class="num">£' + o.stake.toFixed(2) + '</td>' +
         '<td class="num book">' + (o.limit ? '£' + Math.round(o.limit) : 'unknown') + '</td>' +
       '</tr>').join('');
 
+    const anyDeep = r.outcomes.some(o => o.deepLink);
     const stakeNote = r.limited
       ? 'capped at £' + r.total.toFixed(0) + ' by the books’ own limits'
       : 'shown on an example £' + r.total.toFixed(0) + ' stake; no published limit';
@@ -220,7 +234,11 @@ function drawArbs(rows) {
       '<table class="arb-legs"><thead><tr>' +
         '<th>Outcome</th><th class="num">Odds</th><th>Book</th><th class="num">Stake</th><th class="num">Max</th>' +
       '</tr></thead><tbody>' + legs + '</tbody></table>' +
-      '<div class="arb-foot">Profit £' + r.profit.toFixed(2) + ' whichever way it goes — ' + stakeNote + '.</div>' +
+      '<div class="arb-foot">Profit £' + r.profit.toFixed(2) + ' whichever way it goes — ' + stakeNote + '. ' +
+        (anyDeep
+          ? 'Open each leg to check the price is still there before staking anything.'
+          : 'Links go to the fixture page — find the market on it to confirm the price.') +
+      '</div>' +
     '</div>';
   }).join('');
 }
